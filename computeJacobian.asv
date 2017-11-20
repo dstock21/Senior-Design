@@ -1,0 +1,6 @@
+% computeJacobian
+
+function J = computeJacobain(q, L)
+
+J = [L(2)*cos(q(1)-q(2))+L(1)*cos(q(2)), -L(2)*cos(q(1)-q(2));
+    L(2)*sin

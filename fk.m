@@ -9,7 +9,6 @@
 % outputs - 
 % X = 3x2 knee, ankle, and end of foot positions
 
-
 function X = fk(q, L)
 
 X = zeros(3,2);

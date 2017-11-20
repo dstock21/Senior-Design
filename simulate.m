@@ -1,44 +1,32 @@
-% simulate.m - 
-% simulates exoskeleton kinematics
+close all;
+clearvars;
 
-clear all;
-home;
+%% load gait data
 
-%% initialize
-% 12-17", 14-19"
-L = [15*0.0254; 17*0.0254; 6*0.0254];
+% time, hip, knee, ankle, and toe position data respectively (cm to m)
+T = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'B4:B109');
+xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
+xk = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'G4:H109')/100;
+xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
+xt = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
 
-figure(1);
-x = [0,0,0,L(3)];
-y = [0,-L(1),-L(1)-L(2),-L(1)-L(2)];
-hold on;
-axis equal;
-H1 = plot(x, y, '-k');
-H2 = scatter(x, y, 0.05, 'b');
-H3 = plot(x, y, '-r');
-H4 = scatter(x, y, 0.05, 'b');
+% velocities
+vxh = xlsread('Winter_Appendix_data.xlsx','A2.Filtered_Marker_Kinematics', 'L5:L110');
+vyh = xlsread('Winter_Appendix_data.xlsx','A2.Filtered_Marker_Kinematics', 'O5:O110');
+vxa = xlsread('Winter_Appendix_data.xlsx','A2.Filtered_Marker_Kinematics', 'AG5:AG110');
+vya = xlsread('Winter_Appendix_data.xlsx','A2.Filtered_Marker_Kinematics', 'AJ5:AJ110');
+
+% joint angles (theta, omega, alpha: ankle, knee, hip)
+dataq = xlsread('Winter_Appendix_data.xlsx','A4.Filtered_Marker_Kinematics', 'D5:L110');
+q = dataq(:,[7 4 1])*pi/180; % degrees to radians
+qdot = dataq(:,[8 5 2]);
+qdotdot = dataq(:,[9 6 3]);
+
+L = [norm(xh(1,:)-xk(1,:));
+    norm(xk(1,:)-xa(1,:));
+    norm(xa(1,:)-xt(1,:))];
+
+x = xa-xh;
 
 
-%% plot random configurations
-q = zeros(3,1);
-q(1) = -20+ 120*rand();
-q(2) = 100*rand();
-q(3) = q(2)-q(1);
-q = q*pi/180; % to radians
-
-X = fk(q, L);
-q_test = ik(X(2,:),L);
-Xtest = fk(q_test, L);
-
-set(H1, 'XData', [0, X(1:3,1)']);
-set(H1, 'YData', [0, X(1:3,2)']);
-set(H2, 'XData', [0, X(1:3,1)']);
-set(H2, 'YData', [0, X(1:3,2)']);   
-set(H3, 'XData', [0, Xtest(1:3,1)']);
-set(H3, 'YData', [0, Xtest(1:3,2)']);
-set(H4, 'XData', [0, Xtest(1:3,1)']);
-set(H4, 'YData', [0, Xtest(1:3,2)']);
-
-if abs(q-q_test) > 0.01
-    [q, q_test]
-end
+scatter(x(:,1), y(:,2), '.');
