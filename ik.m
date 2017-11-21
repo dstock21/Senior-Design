@@ -4,7 +4,7 @@
 % ground. 
 %
 % inputs - 
-% X = 1x2 ankle position
+% X = 2x1 ankle position
 % L = 3xl link lengths (hip-knee, knee-ankle, ankle-foot)
 % outputs - 
 % q = 3x1 joint angle input
@@ -12,7 +12,9 @@
 % note: for low magnitude q2 (+- 10 degrees), both flexion and extension
 % are valid answers. The flexion joint angle is always returned.
 
-function [q, possible] = ik(X, L)
+function [q, possible] = ik(X)
+
+global L
 
 %   % check validitiy
 L1 = L(1);

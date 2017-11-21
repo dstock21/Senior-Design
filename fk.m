@@ -7,13 +7,15 @@
 % q = 3x1 joint angle input
 % L = 3xl link lengths (hip-knee, knee-ankle, ankle-foot)
 % outputs - 
-% X = 3x2 knee, ankle, and end of foot positions
+% X = 2x3 knee, ankle, and end of foot positions
 
-function X = fk(q, L)
+function X = fk(q)
 
-X = zeros(3,2);
-X(1,:) = L(1)*[sin(q(1)), -cos(q(1))];
+global L
+
+X = zeros(2,3);
+X(:,1) = L(1)*[sin(q(1)); -cos(q(1))];
 theta2 = q(1)-q(2);
-X(2,:) = X(1,:) + L(2)*[sin(theta2), -cos(theta2)];
+X(:,2) = X(:,1) + L(2)*[sin(theta2); -cos(theta2)];
 theta3 = theta2 + pi/2 + q(3);
-X(3,:) = X(2,:) + L(3)*[sin(theta3), -cos(theta3)];
+X(:,3) = X(:,2) + L(3)*[sin(theta3); -cos(theta3)];

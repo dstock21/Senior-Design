@@ -17,10 +17,18 @@ vxa = xlsread('Winter_Appendix_data.xlsx','A2.Filtered_Marker_Kinematics', 'AG5:
 vya = xlsread('Winter_Appendix_data.xlsx','A2.Filtered_Marker_Kinematics', 'AJ5:AJ110');
 
 % joint angles (theta, omega, alpha: ankle, knee, hip)
-dataq = xlsread('Winter_Appendix_data.xlsx','A4.Filtered_Marker_Kinematics', 'D5:L110');
+dataq = xlsread('Winter_Appendix_data.xlsx','A4.RelJointAnglularKinematics', 'D5:L110');
 q = dataq(:,[7 4 1])*pi/180; % degrees to radians
 qdot = dataq(:,[8 5 2]);
 qdotdot = dataq(:,[9 6 3]);
+
+% moments
+Ma = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'I6:I111');
+Mk = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'P6:P111');
+Mh = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'X6:X111');
+
+%% calculations
+global L
 
 L = [norm(xh(1,:)-xk(1,:));
     norm(xk(1,:)-xa(1,:));
@@ -28,5 +36,5 @@ L = [norm(xh(1,:)-xk(1,:));
 
 x = xa-xh;
 
-
+%% plot
 scatter(x(:,1), y(:,2), '.');
