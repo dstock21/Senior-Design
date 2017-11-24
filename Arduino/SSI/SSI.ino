@@ -31,6 +31,7 @@ byte binaryArray[26]; //Array reserved for the binary transformed Code
 byte dummy;           //dummy
 int i = 0;            //loop counter
 int j = 0;            //loop counter
+int speed = 38400;     //data rate in bits per second
 
 /*
 functionprototypes
@@ -48,7 +49,7 @@ void setup()
 {
  DDRB = (1<<PB4); //PB4 is digital pin No 12
  delay(500); 
- beginSerial(38400);  
+ Serial.begin(speed);  
 }
 
 /*
@@ -130,15 +131,15 @@ void transformPosition()
 
 void sendPosition()                                        //This function just sends the raw data (not packed in 4 bytes)- encolsed in  a '255'-masking -  to the serial Object of MAX/MSP/Jitter
 {
-   serialWrite(255);
+   Serial.write(255);
    for(i = 0; i < 26; i++)
    {
-     serialWrite(binaryArray[i]);
+     Serial.write(binaryArray[i]);
      binaryArray[i] = 0;
      grayArray[i] = 0; 
    }
    
-   serialWrite(128);
+   Serial.write(128);
 }
 
 /*
