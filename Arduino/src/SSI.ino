@@ -26,12 +26,13 @@ Hardware specifications:
 Variables
 */
 byte getByte;         //dummy Byte for serialAvailable 
-byte grayArray[26];   //Array reseved for the recieved Gray Code
-byte binaryArray[26]; //Array reserved for the binary transformed Code
 byte dummy;           //dummy
 int i = 0;            //loop counter
 int j = 0;            //loop counter
-int speed = 38400;     //data rate in bits per second
+int speed = 38400;    //data rate in bits per second
+int numOfBits = 17;   // number of bits per angle
+byte grayArray[numOfBits];   //Array reseved for the recieved Gray Code
+byte binaryArray[numOfBits]; //Array reserved for the binary transformed Code
 
 /*
 functionprototypes
@@ -64,7 +65,7 @@ void loop()
             // delay for device to become ready again 
  if(Serial.available())            // check if a request form max is there. To avoid a buffer overrun, MAX/MSP/Jitter is playing PingPong with the arduino Board, if max send any via sierial, arduino responds with the newest Position
  {
-   while(Serial.available() > 0)   // reads all the data send to the arduino board
+   while(Serial.available() > 0)   // reads all the data sent to the arduino board
    {
      dummy = Serial.read();
    }                               // and finaly sends the Position
@@ -105,7 +106,7 @@ void getPosition()
 
 void condensePosition()
 {
-   for(i = 0;i < 26; i++)
+   for(i = 0;i < numOfBits; i++)
    {
      if(grayArray[i] & (1<<PB3))
      {
@@ -123,7 +124,7 @@ void transformPosition()
 {
    binaryArray[0]= grayArray[0];                          // transfer status bit
    binaryArray[1] = grayArray[1];                         // gray to binary, transfer the MSB
-   for(i = 2; i < 26; i++)                                // all other bits are transformed according to: binaryArray[i] = XOR(grayArray[i], binaryArray[i - 1]), cf. http://www.faqs.org/faqs/ai-faq/genetic/part6/section-1.html
+   for(i = 2; i < numOfBits; i++)                                // all other bits are transformed according to: binaryArray[i] = XOR(grayArray[i], binaryArray[i - 1]), cf. http://www.faqs.org/faqs/ai-faq/genetic/part6/section-1.html
    {
      binaryArray[i]= grayArray[i] ^ binaryArray[i - 1]; 
    } 
@@ -132,7 +133,7 @@ void transformPosition()
 void sendPosition()                                        //This function just sends the raw data (not packed in 4 bytes)- encolsed in  a '255'-masking -  to the serial Object of MAX/MSP/Jitter
 {
    Serial.write(255);
-   for(i = 0; i < 26; i++)
+   for(i = 0; i < numOfBits; i++)
    {
      Serial.write(binaryArray[i]);
      binaryArray[i] = 0;
