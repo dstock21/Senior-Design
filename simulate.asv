@@ -97,16 +97,15 @@ ylabel('Knee Angle (rad)');
 figure(6);
 hold on;
 yyaxis left;
-scatter(T, qdot(:,1), '.b');
-scatter(T, qdot(:,2), '.g');
-ylabel('Angular Velocity (rad/s)');
+scatter(T, qdot(:,1), '.r');
+scatter(T, qdot(:,2), '.y');
 yyaxis right;
-scatter(T, q(:,1), '.r');
-scatter(T, q(:,2), '.k');
-ylabel('Joint Angle (rad)');
+scatter(T, q(:,1), '.');
+scatter(T, q(:,2), '.');
 xlim([0,1]);
 legend('hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
 xlabel('Time (s)');
+ylabel('Hip Angle Velocity (rad/s)');
 
 
 % figure(7);

@@ -7,7 +7,7 @@
 % X = 2x1 ankle position
 % L = 3xl link lengths (hip-knee, knee-ankle, ankle-foot)
 % outputs - 
-% q = 3x1 joint angle input
+% q = 3x1 joint angle output
 % note: q3 output is joint angle that makes foot parallel to ground
 % note: for low magnitude q2 (+- 10 degrees), both flexion and extension
 % are valid answers. The flexion joint angle is always returned.
