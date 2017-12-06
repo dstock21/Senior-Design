@@ -4,6 +4,7 @@
 function pos=fkNew(q)
 global L
 pos=zeros(4,2);
+posPoly=zeros(5,2);
 A1=[cos(q(1)+pi/2) -sin(q(1)+pi/2) 0 -L(1)*cos(q(1)+pi/2);
     sin(q(1)+pi/2) cos(q(1)+pi/2) 0 -L(1)*sin(q(1)+pi/2);
     0 0 1 0;
@@ -24,6 +25,33 @@ pos(3,:)=angle(1:2);
 pos(4,:)=foot(1:2);
 grid on
 
-plot(pos(:,1),pos(:,2));
+polyD=0.03175;
+A1P=[cos(q(1)+pi/2) -sin(q(1)+pi/2) 0 -(L(1)-polyD/2)*cos(q(1)+pi/2);
+    sin(q(1)+pi/2) cos(q(1)+pi/2) 0 -(L(1)-polyD/2)*sin(q(1)+pi/2);
+    0 0 1 0;
+    0 0 0 1;];
+A2P=[cos(q(2)/2) -sin(q(2)/2) 0 -polyD*cos(q(2)/2);
+    sin(q(2)/2) cos(q(2)/2) 0 -polyD*sin(q(2)/2);
+    0 0 1 0;
+    0 0 0 1;];
+A3P=[cos(q(2)/2) -sin(q(2)/2) 0 -(L(2)-polyD/2)*cos(q(2)/2);
+    sin(q(2)/2) cos(q(2)/2) 0 -(L(2)-polyD/2)*sin(q(2)/2);
+    0 0 1 0;
+    0 0 0 1;];
+A4P=[cos(q(3)-pi/2) -sin(q(3)-pi/2) 0 L(3)*cos(q(3)-pi/2);
+    sin(q(3)-pi/2) cos(q(3)-pi/2) 0 L(3)*sin(q(3)-pi/2);
+    0 0 1 0;
+    0 0 0 1;];
+PolyPos2=(A1P*[0;0;0;1])';
+PolyPos3=(A1P*A2P*[0;0;0;1])';
+PolyPos4=(A1P*A2P*A3P*[0;0;0;1])';
+PolyPos5=(A1P*A2P*A3P*A4P*[0;0;0;1])';
+posPoly(2,:)=PolyPos2(1:2);
+posPoly(3,:)=
+posPoly(4,:)=
+posPoly(5,:)=
+
+plot(pos(:,1),pos(:,2),'o-');
 axis([-1 1 -0.8 0]);
 axis equal 
+

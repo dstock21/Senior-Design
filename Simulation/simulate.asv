@@ -35,23 +35,18 @@ L_calc = @(i) [norm(xh(i,:)-xk(i,:));
     norm(xa(i,:)-xt(i,:))];
 L = L_calc(1);
 
-L_full = zeros(3,size(xh,1));
-for i = 1:size(xh,1)
-    L_full(:,i) = L_calc(i);
-end
-
-L = mean(L_full,2);
+L_full = zeros(3,size(xh,1))
 
 x = xa-xh;
 xfk = zeros(size(q,1),2);
 for i = 1:size(xfk,1)
-%     L = L_calc(i);
+    L = L_calc(i);
     X = fk(q(i,:)');
     xfk(i,:) = X(:,2)';
 end
 xfkpc = zeros(size(q,1),2);
 for i = 1:size(xfkpc,1)
-%    L = L_calc(i);
+    L = L_calc(i);
     X = fkNew(q(i,:));
     xfkpc(i,:) = X(4,:);
 end
@@ -59,7 +54,7 @@ end
 % angle that makes the foot parallel to the ground
 qik = zeros(size(x,1),3);
 for i = 1:size(qik,1)
-%    L = L_calc(i);
+    L = L_calc(i);
     Q = ik(x(i,:)');
     qik(i,:) = Q';
 end
