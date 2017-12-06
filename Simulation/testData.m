@@ -45,68 +45,91 @@ L = mean(L_full,2);
 x = xa-xh;
 xfk = zeros(size(q,1),2);
 for i = 1:size(xfk,1)
+%     L = L_calc(i);
     X = fk(q(i,:)');
     xfk(i,:) = X(:,2)';
+end
+xfkpc = zeros(size(q,1),2);
+for i = 1:size(xfkpc,1)
+%    L = L_calc(i);
+    X = fkNew(q(i,:));
+    xfkpc(i,:) = X(4,:);
 end
 % Note ankle angle is not strictly accurate for ik.m, it is just the ankle
 % angle that makes the foot parallel to the ground
 qik = zeros(size(x,1),3);
 for i = 1:size(qik,1)
+%    L = L_calc(i);
     Q = ik(x(i,:)');
     qik(i,:) = Q';
 end
 
 %% plot
 figure(1);
-SH1 = subplot(1,2,1);
-xAll = [xh-xh, xk-xh, xa-xh, xt-xh];
 hold on;
-Hlinks = plot(SH1, xAll(1, [1 3 5 7]), xAll(1,[2 4 6 8]), '-k');
-Hlinks.XDataSource = 'Hlinksx';
-Hlinks.YDataSource = 'Hlinksy';
-Hlimbs = scatter(SH1, xAll(1, [1 3 5 7]), xAll(1,[2 4 6 8]), 5, 'r');
-Hlimbs.XDataSource = 'Hlimbsx';
-Hlimbs.YDataSource = 'Hlimbsy';
-xlim(SH1, [-0.45, 0.45]);
-axis equal
-SH2 = subplot(1,2,2);
+axis equal;
+scatter(x(:,1), x(:,2), '.b');
+scatter(xfk(:,1), xfk(:,2), '.r');
+scatter(xfkpc(:,1), xfkpc(:,2), '.y');
+legend('measured', 'calculated','polycentric joint');
+xlabel('Ankle X Position (m)');
+ylabel('Ankle Y Position (m)');
+
+figure(2);
+hold on;
+scatter(T, x(:,1), '.b');
+scatter(T, xfk(:,1), '.r');
+scatter(T, xfkpc(:,1), '.y');
+legend('measured', 'calculated','polycentric joint');
+xlabel('Time (s)');
+ylabel('Ankle X Position (m)');
+
+figure(3);
+hold on;
+scatter(T, x(:,2), '.b');
+scatter(T, xfk(:,2), '.r');
+scatter(T, xfkpc(:,2), '.y');
+legend('measured', 'calculated','polycentric joint');
+xlabel('Time (s)');
+ylabel('Ankle Y Position (m)');
+
+figure(4);
+hold on;
+scatter(T, q(:,1), '.');
+scatter(T, qik(:,1), '.');
+legend('measured', 'calculated');
+xlabel('Time (s)');
+ylabel('Hip Angle (rad)');
+
+figure(5);
+hold on;
+scatter(T, q(:,2), '.');
+scatter(T, qik(:,2), '.');
+legend('measured', 'calculated');
+xlabel('Time (s)');
+ylabel('Knee Angle (rad)');
+
+figure(6);
 hold on;
 yyaxis left;
-Hqdoth = scatter(SH2, T(1), qdot(1,1), '.b');
-Hqdoth.XDataSource = 'HT';
-Hqdoth.YDataSource = 'Hqdothy';
-Hqdotk = scatter(SH2, T(1), qdot(1,2), '.g');
-Hqdotk.XDataSource = 'HT';
-Hqdotk.YDataSource = 'Hqdotky';
-ylabel(SH2, 'Angular Velocity (rad/s)');
+scatter(T, qdot(:,1), '.b');
+scatter(T, qdot(:,2), '.g');
+ylabel('Angular Velocity (rad/s)');
 yyaxis right;
-Hqh = scatter(SH2, T(1), q(1,1), '.r');
-Hqh.XDataSource = 'HT';
-Hqh.YDataSource = 'Hqhy';
-Hqk = scatter(SH2, T(1), q(1,2), '.k');
-Hqk.XDataSource = 'HT';
-Hqk.YDataSource = 'Hqky';
-ylabel(SH2, 'Joint Angle (rad)');
-xlim(SH2, [0,1]);
-legend(SH2, 'hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
-xlabel(SH2, 'Time (s)');
+scatter(T, q(:,1), '.r');
+scatter(T, q(:,2), '.k');
+ylabel('Joint Angle (rad)');
+xlim([0,1]);
+legend('hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
+xlabel('Time (s)');
 
-for i = 1:length(T)
-    if i > 1
-        pause(T(i)-T(i-1));
-    end
-    Hlinksx = xAll(i, [1 3 5 7]);
-    Hlinksy = xAll(i, [2 4 6 8]);
-    Hlimbsx = xAll(i, [1 3 5 7]);
-    Hlimbsy = xAll(i, [2 4 6 8]);
-    
-    HT = T(1:i);
-    Hqdothy = qdot(1:i,1);
-    Hqdotky = qdot(1:i,2);
-    Hqhy = q(1:i,1);
-    Hqky = q(1:i,2);
-    refreshdata
-    if i == length(T)-1
-        i = 1;
-    end
-end
+
+% figure(7);
+% hold on;
+% axis equal;
+% H1 = plot(x(1,1), x(1,2), '-k');
+% H2 = scatter(x, y, 0.05, 'b');
+% set(H1, 'XData', [0, X(1,1:3)]);
+% set(H1, 'YData', [0, X(2,1:3)]);
+% set(H2, 'XData', [0, X(1,1:3)]);
+% set(H2, 'YData', [0, X(2,1:3)]);
