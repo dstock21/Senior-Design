@@ -108,7 +108,6 @@ xlim([0,1]);
 legend('hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
 xlabel('Time (s)');
 
-
 % figure(7);
 % hold on;
 % axis equal;
