@@ -52,12 +52,19 @@ end
 % angle that makes the foot parallel to the ground
 qik = zeros(size(x,1),3);
 for i = 1:size(qik,1)
-    Q = ik(x(i,:)');
-    qik(i,:) = Q';
+    qp = ik(x(i,:)');
+    qik(i,:) = qp';
+end
+
+Q = zeros(size(q,1),2);
+for i = 1:size(Q,1)
+    % UPDATE with force
+    %Q(i,2) = torque(q(i,:)',F);
 end
 
 %% plot
-figure(1);
+f = figure(1);
+set(f, 'position', [300, 200, 1000, 500]);
 SH1 = subplot(1,2,1);
 xAll = [xh-xh, xk-xh, xa-xh, xt-xh];
 hold on;
@@ -67,6 +74,12 @@ Hlinks.YDataSource = 'Hlinksy';
 Hlimbs = scatter(SH1, xAll(1, [1 3 5 7]), xAll(1,[2 4 6 8]), 5, 'r');
 Hlimbs.XDataSource = 'Hlimbsx';
 Hlimbs.YDataSource = 'Hlimbsy';
+HTstr1 = ['Q = ' num2str(Mh(1)) ' N*m'];
+HTstr2 = ['Q = ' num2str(Mk(1)) ' N*m'];
+HTstr3 = ['Q = ' num2str(Ma(1)) ' N*m'];
+Htext1 = text(SH1, xAll(1, 1), xAll(1, 2), HTstr1);
+Htext2 = text(SH1, xAll(1, 3), xAll(1, 4), HTstr2);
+Htext3 = text(SH1, xAll(1, 5), xAll(1, 6), HTstr3);
 xlim(SH1, [-0.45, 0.45]);
 axis equal
 SH2 = subplot(1,2,2);
@@ -99,6 +112,13 @@ for i = 1:length(T)
     Hlinksy = xAll(i, [2 4 6 8]);
     Hlimbsx = xAll(i, [1 3 5 7]);
     Hlimbsy = xAll(i, [2 4 6 8]);
+    
+    HTstr1 = ['Q = ' num2str(Mh(i)) ' N*m'];
+    HTstr2 = ['Q = ' num2str(Mk(i)) ' N*m'];
+    HTstr3 = ['Q = ' num2str(Ma(i)) ' N*m'];
+    set(Htext1, 'string', HTstr1, 'position', xAll(i, 1:2));
+    set(Htext2, 'string', HTstr2, 'position', xAll(i, 3:4));
+    set(Htext3, 'string', HTstr3, 'position', xAll(i, 5:6));
     
     HT = T(1:i);
     Hqdothy = qdot(1:i,1);
