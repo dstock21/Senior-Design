@@ -19,13 +19,26 @@ q = angles;
 v = [0 0; vel];
 
 %% initialize
-global X1 X2 nHyst K d
+global X1 X2 nHyst K d L
+
+L_calc = @(i) [norm(xh(i,:)-xk(i,:));
+    norm(xk(i,:)-xa(i,:));
+    norm(xa(i,:)-xt(i,:))];
+L = L_calc(1);
+
+L_full = zeros(3,size(xh,1));
+for i = 1:size(xh,1)
+    L_full(:,i) = L_calc(i);
+end
+
+L = mean(L_full,2);
+
 a0 = 64;
 a1 = 99;
 a2 = 22;
 a3 = 71;
 nHyst = 3;
-K = 1;
+K = 100;
 d = 0.01;
 state0 = 0;
 
@@ -36,6 +49,7 @@ X1 = x(a0:a1,:);
 X2 = x(a2:a3,:);
 
 Q = zeros(size(x));
+Xcomp = zeros(size(x));
 states = zeros(size(x,1),1);
 states(1) = state0;
 for i = 2:size(Q,1)
@@ -44,7 +58,7 @@ for i = 2:size(Q,1)
     else
         states(i) = changeState(X(i:-1:1), states(i-1));
     end
-    Q(i,:) = resistance(q(i,:)',X(i,:),v(i,:),states(i))';
+    [Q(i,:), Xcomp(i,:)] = resistance(q(i,:)',X(i,:),v(i,:),states(i));
 end
 
 %% plot
@@ -53,6 +67,9 @@ set(f, 'position', [300, 200, 1000, 500]);
 SH1 = subplot(1,2,1);
 hold on;
 Hbase = scatter(SH1, x(:,1), x(:,2), 5, 'r');
+Hcomp = scatter(SH1, Xcomp(1,1), Xcomp(1,2), 10, 'b');
+Hcomp.XDataSource = 'Hcompx';
+Hcomp.YDataSource = 'Hcompy';
 Hcurr = scatter(SH1, X(1,1), X(1,2), 5, 'k');
 Hcurr.XDataSource = 'Hcurrx';
 Hcurr.YDataSource = 'Hcurry';
@@ -83,6 +100,8 @@ for i = 1:length(T)
     if i > 1
         pause((T(i)-T(i-1))*5);
     end
+    Hcompx = Xcomp(i,1);
+    Hcompy = Xcomp(i,2);
     Hcurrx = X(1:i,1);
     Hcurry = X(1:i,2);
     

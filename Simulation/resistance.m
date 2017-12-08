@@ -15,36 +15,41 @@
 % K - global constant that scales resistive torque (empirically determined)
 % d - distance from baseline before resistance starts
 % outputs - 
-% Q = 2x1 torque applied to hip and knee
+% Q = 1x2 torque applied to hip and knee
 
-function Q = resistance(q, X, v, state)
+function [Q, xcl] = resistance(q, X, v, state)
 
 global X1 X2 K d
 
 v = v/norm(v);
-if state == 1
-    x = norm(X-X1(1));
+if state == 2
+    x = norm(X-X1(1,:));
+    xcl = X1(1,:);
     for i = 2:size(X1,1)
-        x0 = norm(X-X1(i));
+        x0 = norm(X-X1(i,:));
         if x0<x
             x = x0;
+            xcl = X1(i,:);
         end
     end
-elseif state == 2
-    x = norm(X-X2(1));
+elseif state == 1
+    x = norm(X-X2(1,:));
+    xcl = X2(1,:);
     for i = 2:size(X2,1)
-        x0 = norm(X-X2(i));
+        x0 = norm(X-X2(i,:));
         if x0<x
             x = x0;
+            xcl = X2(i,:);
         end
     end
 else
     x = 0;
+    xcl = X;
 end
 
 if x > d
     F = K*(x-d)*v;
-    Q = torque(q, F');
+    Q = torque(q, F')';
 else
-    Q = [0; 0];
+    Q = [0, 0];
 end
