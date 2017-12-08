@@ -1,0 +1,105 @@
+close all;
+clearvars;
+
+%% load gait data
+
+% time, hip, knee, ankle, and toe position data respectively (cm to m)
+T = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'B4:B109');
+xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
+xk = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'G4:H109')/100;
+xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
+xt = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'Q4:R109')/100;
+
+% load test data
+load('simulateResistancePos');
+load('simulateResistanceAngles');
+load('simulateResistanceVel');
+X = current;
+q = angles;
+v = [0 0; vel];
+
+%% initialize
+global X1 X2 nHyst K d
+a0 = 64;
+a1 = 99;
+a2 = 22;
+a3 = 71;
+nHyst = 3;
+K = 1;
+d = 0.01;
+state0 = 0;
+
+%% calculate
+x = xa-xh;
+
+X1 = x(a0:a1,:);
+X2 = x(a2:a3,:);
+
+Q = zeros(size(x));
+states = zeros(size(x,1),1);
+states(1) = state0;
+for i = 2:size(Q,1)
+    if i > nHyst
+        states(i) = changeState(X(i:-1:(i-nHyst+1),:),states(i-1));
+        X(i:-1:(i-nHyst),:)
+    else
+        states(i) = changeState(X(i:-1:1), states(i-1));
+    end
+    Q(i,:) = resistance(q(i,:)',X(i,:),v(i,:),states(i))';
+end
+
+%% plot
+f = figure(1);
+set(f, 'position', [300, 200, 1000, 500]);
+SH1 = subplot(1,2,1);
+hold on;
+Hbase = scatter(SH1, x(:,1), x(:,2), 5, 'r');
+Hcurr = scatter(SH1, X(1,1), X(1,2), 5, 'k');
+Hcurr.XDataSource = 'Hcurrx';
+Hcurr.YDataSource = 'Hcurry';
+HTstr1 = ['state = ' num2str(states(1))];
+HTstr2 = ['Qhip = ' num2str(Q(1,2)) ' N*m'];
+HTstr3 = ['Qknee = ' num2str(Q(2,2)) ' N*m'];
+Htext1 = text(SH1, min([x(:,1) X(:,1)]), max([x(:,1) X(:,1)]), HTstr1);
+Htext2 = text(SH1, min([x(:,1) X(:,1)])+0.5, max([x(:,1) X(:,1)]), HTstr2);
+Htext3 = text(SH1, min([x(:,1) X(:,1)])+1, max([x(:,1) X(:,1)]), HTstr3);
+axis equal
+
+SH2 = subplot(1,2,2);
+hold on;
+HQh = scatter(SH2, T(1), Q(1,1), '.b');
+HQh.XDataSource = 'HT';
+HQh.YDataSource = 'Hqdothy';
+Hqdotk = scatter(SH2, T(1), Q(1,2), '.g');
+Hqdotk.XDataSource = 'HT';
+Hqdotk.YDataSource = 'Hqdotky';
+ylabel(SH2, 'Angular Velocity (rad/s)');
+ylabel(SH2, 'Joint Angle (rad)');
+xlim(SH2, [0,1]);
+legend(SH2, 'hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
+xlabel(SH2, 'Time (s)');
+
+for i = 1:length(T)
+    if i > 1
+        pause(T(i)-T(i-1));
+    end
+    Hlinksx = xAll(i, [1 3 5 7]);
+    Hlinksy = xAll(i, [2 4 6 8]);
+    Hlimbsx = xAll(i, [1 3 5 7]);
+    Hlimbsy = xAll(i, [2 4 6 8]);
+    
+    HTstr1 = ['Q = ' num2str(Mh(i)) ' N*m'];
+    HTstr2 = ['Q = ' num2str(Mk(i)) ' N*m'];
+    HTstr3 = ['Q = ' num2str(Ma(i)) ' N*m'];
+    set(Htext1, 'string', HTstr1, 'position', xAll(i, 1:2));
+    set(Htext2, 'string', HTstr2, 'position', xAll(i, 3:4));
+    set(Htext3, 'string', HTstr3, 'position', xAll(i, 5:6));
+    
+    HT = T(1:i);
+    Hqdothy = qdot(1:i,1);
+    Hqdotky = qdot(1:i,2);
+    Hqhy = q(1:i,1);
+    Hqky = q(1:i,2);
+    refreshdata
+end
+
