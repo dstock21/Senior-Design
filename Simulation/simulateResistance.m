@@ -82,7 +82,10 @@ Htext1 = text(SH1, min([x(:,1); X(:,1)]), max([x(:,2); X(:,2)])+0.25, HTstr1);
 Htext2 = text(SH1, min([x(:,1); X(:,1)])+0.15, max([x(:,2); X(:,2)])+0.25, HTstr2);
 Htext3 = text(SH1, min([x(:,1); X(:,1)])+0.4, max([x(:,2); X(:,2)])+0.25, HTstr3);
 axis equal
-
+xlabel(SH1,'Angle Horizontal Position(m)');
+ylabel(SH1,'Angle Vertical Position(m)');
+legend(SH1, 'Reference Gait', 'Corresponding Reference Gait','Measured Gait','Location','southeast');
+title(SH1,'Gait Comparison');
 SH2 = subplot(1,2,2);
 hold on;
 HQh = scatter(SH2, T(1), Q(1,1), '.r');
@@ -94,8 +97,9 @@ HQk.YDataSource = 'HQky';
 ylabel(SH2, 'Torque (N*m)');
 xlim(SH2, [0,T(end)]);
 legend(SH2, 'Hip Joint', 'Knee Joint');
-xlabel(SH2, 'Time (s)');
 
+xlabel(SH2, 'Time (s)');
+title(SH2,'RehabiliGait Resistive Torque');
 for i = 1:length(T)
     if i > 1
         pause((T(i)-T(i-1))*5);

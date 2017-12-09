@@ -35,4 +35,5 @@ if (possible)
     q(1) = theta+phi;
     q(2) = pi - acos((L1^2+L2^2-L3^2)/(2*L1*L2));
     q(3) = q(2)-q(1);
+   
 end

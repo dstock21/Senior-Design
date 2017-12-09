@@ -83,6 +83,9 @@ Htext3 = text(SH1, xAll(1, 5), xAll(1, 6), HTstr3);
 xlim(SH1, [-0.45, 0.45]);
 axis equal
 SH2 = subplot(1,2,2);
+ylabel(SH1, 'Vertical Position (m)');
+xlabel(SH1, 'Horizontal Position (m)');
+title(SH1,'Patient Applied Torque')
 hold on;
 yyaxis left;
 Hqdoth = scatter(SH2, T(1), qdot(1,1), '.b');
@@ -104,7 +107,7 @@ ylabel(SH2, 'Joint Angle (rad)');
 xlim(SH2, [0,1]);
 legend(SH2, 'hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
 xlabel(SH2, 'Time (s)');
-
+title(SH2,'Angular Velocities');
 for i = 1:length(T)
     if i > 1
         pause(T(i)-T(i-1));

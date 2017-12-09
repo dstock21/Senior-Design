@@ -1,7 +1,7 @@
 % q = 3x1 joint angle input (hip, knee, angle)
 % L = 3xl link lengths (hip-knee, knee-ankle, ankle-foot)
 %output x 4x2 hip, knee, angle and foot positions 
-function posPoly=fkNew(q)
+function pos=fkNew(q)
 global L
 pos=zeros(4,2);
 posPoly=zeros(5,2);
@@ -51,9 +51,9 @@ posPoly(3,:)=PolyPos3(1:2);
 posPoly(4,:)=PolyPos4(1:2);
 posPoly(5,:)=PolyPos5(1:2);
 
-% plot(posPoly(:,1),posPoly(:,2),'bo-');
-% hold on
-% plot(pos(:,1),pos(:,2),'o-');
-% axis([-1 1 -0.8 0]);
-% axis equal 
+%plot(posPoly(:,1),posPoly(:,2),'bo-');
+
+plot(pos(:,1),pos(:,2),'o-');
+axis([-1 1 -0.8 0]);
+axis equal 
 
