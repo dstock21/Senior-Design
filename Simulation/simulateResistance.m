@@ -82,8 +82,8 @@ Htext1 = text(SH1, min([x(:,1); X(:,1)]), max([x(:,2); X(:,2)])+0.25, HTstr1);
 Htext2 = text(SH1, min([x(:,1); X(:,1)])+0.15, max([x(:,2); X(:,2)])+0.25, HTstr2);
 Htext3 = text(SH1, min([x(:,1); X(:,1)])+0.4, max([x(:,2); X(:,2)])+0.25, HTstr3);
 axis equal
-xlabel(SH1,'Angle Horizontal Position(m)');
-ylabel(SH1,'Angle Vertical Position(m)');
+xlabel(SH1,'Ankle Horizontal Position(m)');
+ylabel(SH1,'Ankle Vertical Position(m)');
 legend(SH1, 'Reference Gait', 'Corresponding Reference Gait','Measured Gait','Location','southeast');
 title(SH1,'Gait Comparison');
 SH2 = subplot(1,2,2);
