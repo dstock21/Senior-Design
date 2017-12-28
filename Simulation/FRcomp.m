@@ -10,7 +10,7 @@
 % outputs - 
 % Q = compensation torque
 
-function Q = FRcomp(Fload, qdot)
+function Q = FRcomp(Fload, qdot, rBearing)
 
 global mu_bearing qdotmin
 
@@ -21,4 +21,4 @@ end
 if abs(qdot(2)) < qdotmin
     qdot_hat(2) = 0;
 end
-Q = -qdot_hat.*Fload*mu_bearing;
+Q = -qdot_hat.*rBearing.*Fload*mu_bearing;

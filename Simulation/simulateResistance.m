@@ -1,3 +1,7 @@
+%% simulateResistance.m
+% Uses Winter's gait cycle data to test the gait correction algorithm in
+% changeState.m, torque.m, and resistance.m
+
 close all;
 clearvars;
 

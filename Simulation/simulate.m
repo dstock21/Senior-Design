@@ -1,3 +1,7 @@
+%% simulate.m
+% Uses Winter's gait cycle data to simulate the kinematics of a gait cycle
+% and test kinematic functions
+
 close all;
 clearvars;
 

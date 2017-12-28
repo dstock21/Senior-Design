@@ -1,3 +1,9 @@
+%% simulateCompensation.m
+% Uses Winter's gait cycle data to determine the magnitude and shape of
+% each torque compensation. This effectively determine's each effects
+% impact on additional torque to the patient if these torques are not
+% compensated for.
+
 close all;
 
 %% load gait data
@@ -41,12 +47,12 @@ end
 L = mean(L_full,2);
 g = 9.81;
 m = 1*[1; 0.15];
-Izz = m.*([1; 1/8] .* L(1:2)).^2;
 Fload = [30; 30];
 mu_bearing = 0.0015;
 qdotmin = 0.05;
 G = 4;
 J = pi*(0.0254*2)^4*(0.00238)/4*(2700) * G^2 * ones(2,1);
+rBearing = 0.003 * ones(2,1);
 
 x = xa-xh;
 xfk = zeros(size(q,1),2);
@@ -69,12 +75,12 @@ end
 
 QI = zeros(size(q,1),2);
 for i = 1:size(QI,1)
-    QI(i,:) = Icomp(q(i,1:2)', qdot(i,1:2)', qdotdot(i,1:2)', m, Izz)';
+    QI(i,:) = Icomp(q(i,1:2)', qdot(i,1:2)', qdotdot(i,1:2)', m)';
 end
 
 QFR = zeros(size(q,1),2);
 for i = 1:size(QFR,1)
-    QFR(i,:) = FRcomp(Fload, qdot(i,1:2)')';
+    QFR(i,:) = FRcomp(Fload, qdot(i,1:2)', rBearing)';
 end
 
 QID = zeros(size(q,1),2);
@@ -122,7 +128,7 @@ xlim([0, 1]);
 legend('Hip Joint', 'Knee Joint');
 xlabel('Time (s)');
 ylabel('Compensation Torque (N*m)');
-title('Disk Brake Inertial Compensation Torque for a 1 Hz Gait')
+title('Disk Brake Inertia Compensation Torque for a 1 Hz Gait')
 
 figure(5);
 hold on;
