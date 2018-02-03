@@ -33,7 +33,7 @@ Mk = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'P6:P111')
 Mh = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'X6:X111');
 
 %% calculations
-global L mu_bearing qdotmin g
+global L mu_bearing qdotmin g RCOM I
 
 L_calc = @(i) [norm(xh(i,:)-xk(i,:));
     norm(xk(i,:)-xa(i,:));
@@ -47,6 +47,9 @@ end
 L = mean(L_full,2);
 g = 9.81;
 m = 1*[1; 0.15];
+RCOM = L(1:2).*[0.8; 0.2];
+I = m.*L(1:2)/12;
+
 Fload = [30; 30];
 mu_bearing = 0.0015;
 qdotmin = 0.05;
@@ -104,6 +107,8 @@ figure(2);
 hold on;
 scatter(T, QI(:,1), '.k');
 scatter(T, QI(:,2), '.r');
+scatter(T, Mh, '.b');
+scatter(T, Mk, '.g');
 xlim([0, 1]);
 legend('Hip Joint', 'Knee Joint');
 xlabel('Time (s)');
