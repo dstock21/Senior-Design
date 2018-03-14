@@ -59,6 +59,7 @@ void setup()
  pinMode(NSL, OUTPUT);
  pinMode(LED_BUILTIN, OUTPUT);
  digitalWrite(DATA, LOW);
+ while(!Serial);
  SerialUSB.begin(speed);  
  SerialUSB.println("This is a test/n");
 }
