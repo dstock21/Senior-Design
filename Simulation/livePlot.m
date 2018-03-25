@@ -1,9 +1,10 @@
 close all;
 clear all;
 
+COM = 'COM6';
+
 %% connect serial
-arduino = serial('COM4', 'BaudRate', 9600);
-fopen(arduino);
+arduino = setupSerial(COM);
 
 cs = -10000; % start character
 
