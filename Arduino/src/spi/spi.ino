@@ -6,6 +6,10 @@
 #define HIP_TORQUE A2
 #define T_OFFSET 1.85
 #define T_SENSITIVITY (8*6/5.6) 
+#define CONV_D2R M_PI/180
+
+#define BETA 0.9
+#define T 0.005
 
 
 uint16_t ABSposition = 0;
@@ -13,6 +17,19 @@ uint16_t ABSposition_last = 0;
 uint8_t temp[2];
 float values[5];
 float test = 20.0;
+
+// State:
+// 0: knee angle
+// 1: hip angle
+// 2: knee torque
+// 3: hip torque
+// 4: knee angular velocity
+// 5: hip angular velocity
+// 6: ankle positionx
+// 7: ankle positiony
+float state[8];
+float stateavg[8];
+float L[2];
 
 float deg = 0.00;
 float knee_deg = 0.00;
@@ -57,6 +74,13 @@ void setup()
   delay(2000);
   SPI.end();
 
+  for (int i = 0; i < 6; i++) {
+    state[i] = 0;
+    stateavg[i] = 0;
+  }
+
+  L[0] = 0.7;
+  L[1] = 0.5;
 }
 uint8_t SPI_T (uint8_t msg, int joint)    //Repetive SPI transmit sequence
 {
@@ -112,14 +136,19 @@ float get_torque(int joint, float avg) {
   voltage = (5.0/1024)*adc_output;
   
   torque = (voltage-T_OFFSET)*T_SENSITIVITY;
-
-  avg = 0.9*avg+0.1*torque;
-  return avg;
+  
+  return torque;
 }
 
 void send_values(float* values, int len) {
   for (int i = 0; i < len; i++) {
     Serial.println(values[i]);
+  }
+}
+
+void average(float* avg, float* curr, int len) {
+  for(int i = 0; i < len i++) {
+    avg[i] = BETA*avg[i]+(1-BETA)*curr[i]
   }
 }
 
@@ -130,7 +159,15 @@ void loop()
        values[2] = get_angle(HIP_ANGLE);
        values[3] = get_torque(KNEE_TORQUE, avg_hip);
        values[4] = get_torque(HIP_TORQUE, avg_knee);
-       send_values(values, 5);
-       
 
+       
+       for(int i = 0; i < 4; i++) {
+        state[i] = values[i+1];
+       }
+       state[4] = (stateavg[0]-state[0])/T;
+       state[5] = (stateavg[1]-state[1])/T;
+
+       average(stateavg, state, 6);
+
+       send_values(values, 5);
 }

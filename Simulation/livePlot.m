@@ -69,7 +69,7 @@ while true
         ht = [fscanf(arduino, '%f'); ht(1:end-1)];
         t = [toc; t(1:end-1)];
         
-        ax = fk([ha; ka; 0]);
+        ax = fk([ha(1); ka(1); 0]);
         subplot(2,4,[1:2,5:6]);
         hold on;
         axis equal;
