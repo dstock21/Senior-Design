@@ -1,16 +1,27 @@
 #include <SPI.h>
+#include <VarSpeedServo.h>
+#include <MatrixMath.h>
 
 #define KNEE_ANGLE 3 //Chip or Slave select 
 #define HIP_ANGLE 4 //Chip or Slave select
 #define KNEE_TORQUE A1
 #define HIP_TORQUE A2
+#define SERVO_KNEE 5
+#define SERVO_HIP 6
+#define SPEED 160
 #define T_OFFSET 1.85
 #define T_SENSITIVITY (8*6/5.6) 
 #define CONV_D2R M_PI/180
+#define K 0
+#define KP 0
+#define KD 0
+#define CONV_D2R M_PI/180
+
+VarSpeedServo ServoH;
+VarSpeedServo ServoK;
 
 #define BETA 0.9
 #define T 0.005
-
 
 uint16_t ABSposition = 0;
 uint16_t ABSposition_last = 0;
@@ -27,10 +38,15 @@ float test = 20.0;
 // 5: hip angular velocity
 // 6: ankle positionx
 // 7: ankle positiony
-float state[8];
-float stateavg[8];
+// 8: error
+// 9: error derivative
+float state[10];
+float stateavg[10];
+// 0: hip-knee
+// 1: knee-ankle
 float L[2];
 
+float error;
 float deg = 0.00;
 float knee_deg = 0.00;
 float hip_deg = 0.00;
@@ -73,6 +89,9 @@ void setup()
   Serial.flush();
   delay(2000);
   SPI.end();
+
+  ServoH.attach(SERVO_HIP);
+  ServoK.attach(SERVO_KNEE);
 
   for (int i = 0; i < 6; i++) {
     state[i] = 0;
@@ -152,6 +171,25 @@ void average(float* avg, float* curr, int len) {
   }
 }
 
+void fk() {
+  state[6] = L[0]*sin(stateavg[1]*CONV_D2R)+L[1]*sin(stateavg[0]*CONV_D2R);
+  state[7] = -L[0]*cos(stateavg[1]*CONV_D2R)-L[1]*cos(stateavg[0]*CONV_D2R);
+}
+
+// row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3
+void jacobian(float* jacobian) {
+  jacobian[0] = L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[0]*cos(stateavg[1]*CONV_D2R);
+  jacobian[1] = -L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
+  jacobian[2] = -L[1]*sin((stateavg[0]-stateavg[1])*CONV_D2R) - L[0]*sin(stateavg[1]*CONV_D2R);
+  jacobian[3] = L[1]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
+}
+
+// Returns position error
+float err() {
+  //unimplemented
+  
+}
+
 void loop()
 {
        Serial.println("kwasia");
@@ -166,8 +204,14 @@ void loop()
        }
        state[4] = (stateavg[0]-state[0])/T;
        state[5] = (stateavg[1]-state[1])/T;
+       fk();
 
-       average(stateavg, state, 6);
+       average(stateavg, state, 8);
+
+       //not implemented yet
+       error = err();
+       state[9] = (error-state[8])/T;
+       state[8] = error;
 
        send_values(values, 5);
 }
