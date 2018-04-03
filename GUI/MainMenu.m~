@@ -99,8 +99,8 @@ for i = 1:length(files)
     datafiles = strsplit(f.name, '-');
     if (strcmp(datafiles{1}, p_id))
         value = datafiles{2};
-        value = value(1:end-4);
-        list = [list(1:end), value];
+        value 
+        list = [list(1:end), datafiles{2}];
     end
 end
 set(handles.popupmenu1, 'String', list);
