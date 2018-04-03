@@ -2,26 +2,30 @@
 #include <VarSpeedServo.h>
 #include <MatrixMath.h>
 
+// UPDATE
+#define NREF 106
+#define BETA 0.9
+#define T_OFFSET 1.85
+#define T_SENSITIVITY (8*6/5.6) 
+#define K 0
+#define KP 0
+#define KD 0
+
+// PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
 #define HIP_ANGLE 4 //Chip or Slave select
 #define KNEE_TORQUE A1
 #define HIP_TORQUE A2
 #define SERVO_KNEE 5
 #define SERVO_HIP 6
+
+// Other
 #define SPEED 160
-#define T_OFFSET 1.85
-#define T_SENSITIVITY (8*6/5.6) 
-#define CONV_D2R M_PI/180
-#define K 0
-#define KP 0
-#define KD 0
+#define T 0.005
 #define CONV_D2R M_PI/180
 
 VarSpeedServo ServoH;
 VarSpeedServo ServoK;
-
-#define BETA 0.9
-#define T 0.005
 
 uint16_t ABSposition = 0;
 uint16_t ABSposition_last = 0;
@@ -46,7 +50,11 @@ float stateavg[10];
 // 1: knee-ankle
 float L[2];
 
+float* Ref[2*NREF];
+int i_err;
 float error;
+float* q_err[4]; //knee, hip, knee', hip'
+
 float deg = 0.00;
 float knee_deg = 0.00;
 float hip_deg = 0.00;
@@ -185,9 +193,19 @@ void jacobian(float* jacobian) {
 }
 
 // Returns position error
-float err() {
-  //unimplemented
-  
+int err() {
+  // joint space implementation
+  float err;
+  int i_err;
+  error = sqrt((Ref[0]-stateavg[1])^2 + (Ref[1]-stateavg[0])^2);
+  for(int i = 1; i < NREF; i++) {
+    err = sqrt((Ref[2*i]-stateavg[1])^2 + (Ref[2*i+1]-stateavg[0])^2);
+    if(err < error) {
+      i_err = i;
+      error = err;
+    }
+  }
+  return i_err;
 }
 
 void loop()
@@ -209,7 +227,8 @@ void loop()
        average(stateavg, state, 8);
 
        //not implemented yet
-       error = err();
+       i_err = err();
+       
        state[9] = (error-state[8])/T;
        state[8] = error;
 
