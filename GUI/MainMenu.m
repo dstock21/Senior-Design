@@ -22,7 +22,7 @@ function varargout = MainMenu(varargin)
 
 % Edit the above text to modify the response to help MainMenu
 
-% Last Modified by GUIDE v2.5 01-Apr-2018 15:51:53
+% Last Modified by GUIDE v2.5 01-Apr-2018 21:59:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -89,7 +89,7 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 direc = pwd;
 files = dir(direc);
-list = [];
+list = {};
 p_id = get(handles.edit1,'String');
 for i = 1:length(files)
     f = files(i, 1);
@@ -99,8 +99,8 @@ for i = 1:length(files)
     datafiles = strsplit(f.name, '-');
     if (strcmp(datafiles{1}, p_id))
         value = datafiles{2};
-        value = value(1:end-4);
-        list = [list(1:end), value];
+        value = string(value(1:end-4));
+        list{end+1} = value;
     end
 end
 set(handles.popupmenu1, 'String', list);
@@ -111,6 +111,7 @@ function pushbutton3_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+close all;
 
 
 
@@ -157,3 +158,14 @@ function popupmenu1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over popupmenu1.
+function popupmenu1_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+ts = get(handles.mypopupmenu,'Value');
+setappdata(0,'ts',ts);
+

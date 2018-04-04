@@ -1,6 +1,6 @@
 #include <SPI.h>
-#include <VarSpeedServo.h>
-#include <MatrixMath.h>
+#include "VarSpeedServo.h"
+#include "MatrixMath.h"
 
 #define KNEE_ANGLE 3 //Chip or Slave select 
 #define HIP_ANGLE 4 //Chip or Slave select
@@ -118,13 +118,12 @@ float get_angle(int joint) {
    digitalWrite(joint,LOW);
    
    SPI_T(0x10, joint);   //issue read command
-   
    recieved = SPI_T(0x00, joint);    //issue NOP to check if encoder is ready to send
    
    while (recieved != 0x10)    //loop while encoder is not ready to send
-   {
+   { 
      recieved = SPI_T(0x00, joint); 
-     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     delay(2);    //wait a bit
+     //Serial.println(joint); //cleck again if encoder is still workin     delay(2);    //wait a bit
    }
    
    temp[0] = SPI_T(0x00, joint);    //Recieve MSB
@@ -166,8 +165,8 @@ void send_values(float* values, int len) {
 }
 
 void average(float* avg, float* curr, int len) {
-  for(int i = 0; i < len i++) {
-    avg[i] = BETA*avg[i]+(1-BETA)*curr[i]
+  for(int i = 0; i < len; i++) {
+    avg[i] = BETA*avg[i]+(1-BETA)*curr[i];
   }
 }
 
@@ -176,7 +175,7 @@ void fk() {
   state[7] = -L[0]*cos(stateavg[1]*CONV_D2R)-L[1]*cos(stateavg[0]*CONV_D2R);
 }
 
-// row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3
+// row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3                                                                                                                                                                                                                                                                                                                                                                                                                             
 void jacobian(float* jacobian) {
   jacobian[0] = L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[0]*cos(stateavg[1]*CONV_D2R);
   jacobian[1] = -L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
@@ -192,7 +191,7 @@ float err() {
 
 void loop()
 {
-       Serial.println("kwasia");
+       //Serial.println("kwasia");
        values[1] = get_angle(KNEE_ANGLE);
        values[2] = get_angle(HIP_ANGLE);
        values[3] = get_torque(KNEE_TORQUE, avg_hip);
