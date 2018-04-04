@@ -7,10 +7,12 @@
 #define BETA 0 //0 = filter is off
 #define T_OFFSET 1.85
 #define T_SENSITIVITY (8*6/5.6) 
+#define PHI_M 72.1
+#define PHI_B 1155
 #define K 0
 #define KP 0
 #define KD 0
-#define MIN_PHI 1200
+#define MIN_PHI 1150
 
 // PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
@@ -217,7 +219,8 @@ int err() {
 }
 
 float phi_est(float t) {
-  float phi_des = 0;
+  // TODO
+  float phi_des = PHI_M*t + PHI_B;
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }
