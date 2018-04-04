@@ -22,7 +22,7 @@ function varargout = MainMenu(varargin)
 
 % Edit the above text to modify the response to help MainMenu
 
-% Last Modified by GUIDE v2.5 01-Apr-2018 21:59:40
+% Last Modified by GUIDE v2.5 04-Apr-2018 12:35:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -91,6 +91,7 @@ direc = pwd;
 files = dir(direc);
 list = {};
 p_id = get(handles.edit1,'String');
+setappdata(0,'p_id',p_id);
 for i = 1:length(files)
     f = files(i, 1);
     if strcmp(f.name, '.') || strcmp(f.name, '..')
@@ -166,6 +167,15 @@ function popupmenu1_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to popupmenu1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ts = get(handles.mypopupmenu,'Value');
-setappdata(0,'ts',ts);
 
+
+
+% --- Executes on button press in pushbutton4.
+function pushbutton4_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+contents = get(handles.popupmenu1,'String'); 
+ts = contents{get(handles.popupmen1,'Value')};
+setappdata(0,'ts',ts);
+DeadSimulationPage;

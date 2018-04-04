@@ -142,7 +142,8 @@ float get_angle(int joint) {
    while (recieved != 0x10)    //loop while encoder is not ready to send
    {
      recieved = SPI_T(0x00, joint); 
-     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     delay(2);    //wait a bit
+     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     
+     //delay(2);    //wait a bit
    }
    
    temp[0] = SPI_T(0x00, joint);    //Recieve MSB
@@ -227,9 +228,22 @@ float phi_est(float t) {
   return phi_des;
 }
 
+void run_servo() {
+   // correct servos
+   if (phik < MIN_PHI) {
+    ServoK.write(phik,SPEED);
+   } else {
+    ServoK.write(phik, SPEED);
+   }
+   if (phih < MIN_PHI) {
+    ServoK.write(phih,SPEED);
+   } else {
+    ServoK.write(phih, SPEED);
+   }
+}
+
 void loop()
 {
-       Serial.println("kwasia");
        // take measurements
        values[1] = get_angle(KNEE_ANGLE)/4;
        values[2] = get_angle(HIP_ANGLE)/4;
@@ -264,17 +278,7 @@ void loop()
        phik = phi_est(tk_des) + KP*t_err[0] + KD*t_err[2];
        phih = phi_est(th_des) + KP*t_err[1] + KD*t_err[3];
 
-       // correct servos
-       if (phik < MIN_PHI) {
-        ServoK.write(phik,SPEED);
-       } else {
-        ServoK.write(phik, SPEED);
-       }
-       if (phih < MIN_PHI) {
-        ServoK.write(phih,SPEED);
-       } else {
-        ServoK.write(phih, SPEED);
-       }
+       run_servo();
        
        send_values(values, 5);
 }
