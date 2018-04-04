@@ -1,5 +1,4 @@
 close all;
-clearvars;
 
 %% load gait data
 
@@ -28,12 +27,11 @@ Mk = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'P6:P111')
 Mh = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'X6:X111');
 
 %% calculations
-global L
+global L mu_bearing qdotmin g
 
 L_calc = @(i) [norm(xh(i,:)-xk(i,:));
     norm(xk(i,:)-xa(i,:));
     norm(xa(i,:)-xt(i,:))];
-L = L_calc(1);
 
 L_full = zeros(3,size(xh,1));
 for i = 1:size(xh,1)
@@ -41,95 +39,97 @@ for i = 1:size(xh,1)
 end
 
 L = mean(L_full,2);
+g = 9.81;
+m = 1*[1; 0.1];
+Izz = m.*([1; 1/4] .* L(1:2)).^2;
+Fload = [30; 30];
+mu_bearing = 0.0015;
+qdotmin = 0.05;
+G = 4;
+J = pi*(0.0254*2)^4*(0.00238)/4*(2700) * G^2 * ones(2,1);
 
 x = xa-xh;
 xfk = zeros(size(q,1),2);
 for i = 1:size(xfk,1)
-%     L = L_calc(i);
     X = fk(q(i,:)');
     xfk(i,:) = X(:,2)';
-end
-xfkpc = zeros(size(q,1),2);
-for i = 1:size(xfkpc,1)
-%    L = L_calc(i);
-    X = fkNew(q(i,:));
-    xfkpc(i,:) = X(4,:);
 end
 % Note ankle angle is not strictly accurate for ik.m, it is just the ankle
 % angle that makes the foot parallel to the ground
 qik = zeros(size(x,1),3);
 for i = 1:size(qik,1)
-%    L = L_calc(i);
-    Q = ik(x(i,:)');
-    qik(i,:) = Q';
+    qp = ik(x(i,:)');
+    qik(i,:) = qp';
 end
 
+QG = zeros(size(q,1),2);
+for i = 1:size(QG,1)
+    QG(i,:) = Gcomp(q(i,1:2)',m)';
+end
+
+QI = zeros(size(q,1),2);
+for i = 1:size(QI,1)
+    QI(i,:) = Icomp(q(i,1:2)', qdot(i,1:2)', qdotdot(i,1:2)', m, Izz)';
+end
+
+QFR = zeros(size(q,1),2);
+for i = 1:size(QFR,1)
+    QFR(i,:) = FRcomp(Fload, qdot(i,1:2)')';
+end
+
+QID = zeros(size(q,1),2);
+for i = 1:size(QID,1)
+    QID(i,:) = IDcomp(qdotdot(i,1:2)', J)';
+end
+
+Q = QG + QI + QFR + QID;
 %% plot
 figure(1);
 hold on;
-axis equal;
-scatter(x(:,1), x(:,2), '.b');
-scatter(xfk(:,1), xfk(:,2), '.r');
-scatter(xfkpc(:,1), xfkpc(:,2), '.y');
-legend('measured', 'calculated','polycentric joint');
-xlabel('Ankle X Position (m)');
-ylabel('Ankle Y Position (m)');
+scatter(T, QG(:,1), '.k');
+scatter(T, QG(:,2), '.r');
+xlim([0, 1]);
+legend('Hip Joint', 'Knee Joint');
+xlabel('Time (s)');
+ylabel('Compensation Torque (N*m)');
+title('Gravitational Compensation Torque for a 1 Hz Gait')
 
 figure(2);
 hold on;
-scatter(T, x(:,1), '.b');
-scatter(T, xfk(:,1), '.r');
-scatter(T, xfkpc(:,1), '.y');
-legend('measured', 'calculated','polycentric joint');
+scatter(T, QI(:,1), '.k');
+scatter(T, QI(:,2), '.r');
+xlim([0, 1]);
+legend('Hip Joint', 'Knee Joint');
 xlabel('Time (s)');
-ylabel('Ankle X Position (m)');
+ylabel('Compensation Torque (N*m)');
+title('Inertial Compensation Torque for a 1 Hz Gait')
 
 figure(3);
 hold on;
-scatter(T, x(:,2), '.b');
-scatter(T, xfk(:,2), '.r');
-scatter(T, xfkpc(:,2), '.y');
-legend('measured', 'calculated','polycentric joint');
+scatter(T, QFR(:,1),50, 'ob');
+scatter(T, QFR(:,2),20,'*r');
+xlim([0, 1]);
+legend('Hip Joint', 'Knee Joint');
 xlabel('Time (s)');
-ylabel('Ankle Y Position (m)');
+ylabel('Compensation Torque (N*m)');
+title('Frictional Compensation Torque for a 1 Hz Gait')
 
 figure(4);
 hold on;
-scatter(T, q(:,1), '.');
-scatter(T, qik(:,1), '.');
-legend('measured', 'calculated');
+scatter(T, QID(:,1), '.k');
+scatter(T, QID(:,2), '.r');
+xlim([0, 1]);
+legend('Hip Joint', 'Knee Joint');
 xlabel('Time (s)');
-ylabel('Hip Angle (rad)');
+ylabel('Compensation Torque (N*m)');
+title('Disk Brake Inertial Compensation Torque for a 1 Hz Gait')
 
 figure(5);
 hold on;
-scatter(T, q(:,2), '.');
-scatter(T, qik(:,2), '.');
-legend('measured', 'calculated');
+scatter(T, Q(:,1), '.k');
+scatter(T, Q(:,2), '.r');
+xlim([0, 1]);
+legend('Hip Joint', 'Knee Joint');
 xlabel('Time (s)');
-ylabel('Knee Angle (rad)');
-
-figure(6);
-hold on;
-yyaxis left;
-scatter(T, qdot(:,1), '.b');
-scatter(T, qdot(:,2), '.g');
-ylabel('Angular Velocity (rad/s)');
-yyaxis right;
-scatter(T, q(:,1), '.r');
-scatter(T, q(:,2), '.k');
-ylabel('Joint Angle (rad)');
-xlim([0,1]);
-legend('hip angular velocity', 'knee angular velocity', 'hip angle', 'knee angle');
-xlabel('Time (s)');
-
-
-% figure(7);
-% hold on;
-% axis equal;
-% H1 = plot(x(1,1), x(1,2), '-k');
-% H2 = scatter(x, y, 0.05, 'b');
-% set(H1, 'XData', [0, X(1,1:3)]);
-% set(H1, 'YData', [0, X(2,1:3)]);
-% set(H2, 'XData', [0, X(1,1:3)]);
-% set(H2, 'YData', [0, X(2,1:3)]);
+ylabel('Compensation Torque (N*m)');
+title('Total Compensation Torque for a 1 Hz Gait')

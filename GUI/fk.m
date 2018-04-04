@@ -11,7 +11,7 @@
 
 function X = fk(q)
 
-global L
+L = [0.31; 0.41;0];
 
 X = zeros(2,3);
 X(:,1) = L(1)*[sin(q(1)); -cos(q(1))];

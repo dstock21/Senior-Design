@@ -114,7 +114,8 @@ ylabel('Hip Torque (Nm)');
 
 p_id = getappdata(0, 'p_id');
 ts = getappdata(0, 'ts');
-handles.values = csvread([p_id, ts]);
+v = [p_id, '-', ts, '.csv'];
+handles.values = csvread([p_id, '-', ts, '.csv']);
 
 guidata(hObject,handles);
 start(handles.timer);
