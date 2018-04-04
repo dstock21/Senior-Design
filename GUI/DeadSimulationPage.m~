@@ -1,35 +1,35 @@
-function varargout = LiveSimulationPage(varargin)
-% LIVESIMULATIONPAGE MATLAB code for LiveSimulationPage.fig
-%      LIVESIMULATIONPAGE, by itself, creates a new LIVESIMULATIONPAGE or raises the existing
+function varargout = DeadSimulationPage(varargin)
+% DEADSIMULATIONPAGE MATLAB code for DeadSimulationPage.fig
+%      DEADSIMULATIONPAGE, by itself, creates a new DEADSIMULATIONPAGE or raises the existing
 %      singleton*.
 %
-%      H = LIVESIMULATIONPAGE returns the handle to a new LIVESIMULATIONPAGE or the handle to
+%      H = DEADSIMULATIONPAGE returns the handle to a new DEADSIMULATIONPAGE or the handle to
 %      the existing singleton*.
 %
-%      LIVESIMULATIONPAGE('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in LIVESIMULATIONPAGE.M with the given input arguments.
+%      DEADSIMULATIONPAGE('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in DEADSIMULATIONPAGE.M with the given input arguments.
 %
-%      LIVESIMULATIONPAGE('Property','Value',...) creates a new LIVESIMULATIONPAGE or raises the
+%      DEADSIMULATIONPAGE('Property','Value',...) creates a new DEADSIMULATIONPAGE or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before LiveSimulationPage_OpeningFcn gets called.  An
+%      applied to the GUI before DeadSimulationPage_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to LiveSimulationPage_OpeningFcn via varargin.
+%      stop.  All inputs are passed to DeadSimulationPage_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help LiveSimulationPage
+% Edit the above text to modify the response to help DeadSimulationPage
 
-% Last Modified by GUIDE v2.5 31-Mar-2018 18:44:15
+% Last Modified by GUIDE v2.5 01-Apr-2018 21:28:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @LiveSimulationPage_OpeningFcn, ...
-                   'gui_OutputFcn',  @LiveSimulationPage_OutputFcn, ...
+                   'gui_OpeningFcn', @DeadSimulationPage_OpeningFcn, ...
+                   'gui_OutputFcn',  @DeadSimulationPage_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,26 +44,26 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before LiveSimulationPage is made visible.
-function LiveSimulationPage_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before DeadSimulationPage is made visible.
+function DeadSimulationPage_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to LiveSimulationPage (see VARARGIN)
+% varargin   command line arguments to DeadSimulationPage (see VARARGIN)
 
-% Choose default command line output for LiveSimulationPage
+% Choose default command line output for DeadSimulationPage
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes LiveSimulationPage wait for user response (see UIRESUME)
+% UIWAIT makes DeadSimulationPage wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = LiveSimulationPage_OutputFcn(hObject, eventdata, handles) 
+function varargout = DeadSimulationPage_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -78,9 +78,8 @@ handles.timer = timer('Name','MyTimer',               ...
                        'StartDelay',0,                 ... 
                        'TasksToExecute',inf,           ... 
                        'ExecutionMode','fixedSpacing', ...
-                       'TimerFcn',{@timerCallback,handles.figure1});
-handles.arduino = setupSerial('COM7');
-handles.t = 0;
+                       'TimerFcn',{@dtimerCallback,handles.figure1});
+handles.switch = 1;
 axes(handles.axes2);
 handles.Pos = plot(x(:,1), x(:,2), '.r', NaN, NaN, '.b');
 handles.time = 0;
@@ -113,6 +112,10 @@ title('Hip Torque');
 xlabel('Time (s)');
 ylabel('Hip Torque (Nm)');
 
+p_id = getappdata(0, 'p_id');
+ts = getappdata(0, 'ts');
+handles.values = csvread([p_id, ts]);
+
 guidata(hObject,handles);
 start(handles.timer);
 varargout{1} = handles.output;
@@ -125,14 +128,7 @@ function slider1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of
-%        slider
-value = get(hObject,'Value');
-mini = get(hObject,'Min');
-maxi = get(hObject,'Max');
-
-ratio = value / (maxi - mini);
-fprintf(handles.arduino, '%f', ratio);
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 
 % --- Executes during object creation, after setting all properties.
@@ -152,14 +148,13 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-fprintf(handles.arduino, '%f', -10000.0);
+
 
 % --- Executes on button press in pushbutton2.
 function pushbutton2_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-stop(handles.timer);
 data = [get(handles.Pos(2, 1),'XData'), get(handles.Pos(2, 1),'YData'), get(handles.Hka,'XData'), get(handles.Hka,'YData'), get(handles.Hkt,'XData'), get(handles.Hkt,'YData')...
     , get(handles.Hha,'XData'), get(handles.Hha,'YData'), get(handles.Hht,'XData'), get(handles.Hht,'YData')];
 p_id = getappdata(0, 'p_id');
@@ -167,7 +162,6 @@ d = datetime('now');
 d_str = datestr(d, 30);
 filename = [p_id,'-', d_str, '.csv'];
 csvwrite(filename, data);
-close all;
 
 
 % --- Executes on button press in pushbutton3.
@@ -175,8 +169,6 @@ function pushbutton3_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-stop(handles.timer);
-close all;
 
 
 % --- If Enable == 'on', executes on mouse press in 5 pixel border.
@@ -185,3 +177,29 @@ function pushbutton2_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to pushbutton2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes during object creation, after setting all properties.
+function figure1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes on button press in pushbutton4.
+function pushbutton4_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if handles.switch == 1
+    handles.switch = 0;
+    stop(handles.timer);
+    set(handles.pushbutton4, 'String', 'Continue');
+else 
+    handles.switch = 1;
+    start(handles.timer);
+    set(handles.pushbutton4, 'String', 'Pause');
+end
+
+guidata(hObject, handles);
+

@@ -70,15 +70,17 @@ function varargout = LiveSimulationPage_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
 handles.timer = timer('Name','MyTimer',               ...
                        'Period',0.1,                    ... 
                        'StartDelay',0,                 ... 
                        'TasksToExecute',inf,           ... 
                        'ExecutionMode','fixedSpacing', ...
                        'TimerFcn',{@timerCallback,handles.figure1});
-arduino = setupSerial(COM);
+%handles.arduino = setupSerial(COM);
 axes(handles.axes2);
-handles.Pos = scatter(NaN, NaN);
+handles.Pos = scatter(xa(:,1), xa(:,2), '.r');
+scatter(xa(:,1), xa(:,2),
 title('Gait Characterization');
 xlabel('Ankle X Position (m)');
 ylabel('Ankle Y Position (m)');

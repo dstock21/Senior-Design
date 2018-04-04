@@ -12,7 +12,7 @@
 #define K 0
 #define KP 0
 #define KD 0
-#define MIN_PHI 1150
+#define MIN_PHI PHI_B
 
 // PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
@@ -202,14 +202,14 @@ void jacobian(float* jacobian) {
   jacobian[3] = L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
 }
 
-// Returns position error
+// Returns min position error index
 int err() {
   // joint space implementation
   float err;
   int i_err;
-  error = sqrt(sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]));
+  error = sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]);
   for(int i = 1; i < NREF; i++) {
-    err = sqrt(sq(Ref[2*i]-stateavg[0]) + sq(Ref[2*i+1]-stateavg[1]));
+    err = sq(Ref[2*i]-stateavg[0]) + sq(Ref[2*i+1]-stateavg[1]);
     if(err < error) {
       i_err = i;
       error = err;
@@ -231,8 +231,8 @@ void loop()
 {
        Serial.println("kwasia");
        // take measurements
-       values[1] = get_angle(KNEE_ANGLE);
-       values[2] = get_angle(HIP_ANGLE);
+       values[1] = get_angle(KNEE_ANGLE)/4;
+       values[2] = get_angle(HIP_ANGLE)/4;
        values[3] = get_torque(KNEE_TORQUE, avg_hip);
        values[4] = get_torque(HIP_TORQUE, avg_knee);
 
