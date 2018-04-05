@@ -73,10 +73,6 @@ function varargout = LiveSimulationPage_OutputFcn(hObject, eventdata, handles)
 xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
 xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
 x = xa-xh;
-
-dataq = xlsread('Winter_Appendix_data.xlsx','A4.RelJointAngularKinematics', 'D5:L110');
-q = dataq(:,[4 7]); % (knee, hip)
-
 handles.timer = timer('Name','MyTimer',               ...
                        'Period',0.001,                    ... 
                        'StartDelay',0,                 ... 
@@ -156,7 +152,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-fprintf(handles.arduino, '%f', -10000.0);
+fprintf(handles.arduino, '%c', 'r');
 
 % --- Executes on button press in pushbutton2.
 function pushbutton2_Callback(hObject, eventdata, handles)

@@ -2,12 +2,20 @@
 #include "VarSpeedServo.h"
 #include "MatrixMath.h"
 
+// NOTES:
+// Reference gait is still not being uploaded to Arduino yet.
+// In order to apply servo positions manually, go to function "run_servo()" 
+// and manually apply an angle in microseconds. also, ake sure run_servo() 
+// is uncommented in loop(). 
+// The only non-deterministic function in loop() is get_angle(). Comment 
+// all instances if they are not relevant to current test.
+
 // UPDATE
 #define NREF 139
 #define BETA 0.9 //0 = filter is off
 #define T_OFFSET 1.85
 #define T_SENSITIVITY (8*6/5.6) 
-#define K 1 // UPDATE
+#define K 0.1 // UPDATE
 #define KP 0
 #define KD 0
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
@@ -24,6 +32,7 @@
 #define HIP_TORQUE A2
 #define SERVO_KNEE 5
 #define SERVO_HIP 6
+#define ZERO_RESET 7
 
 // Other
 #define SPEED 160
@@ -44,13 +53,16 @@ uint8_t temp[2];
 // 3: hip torque
 float state[4];
 float stateavg[4];
-// 0: knee-hip
-// 1: hip-knee
+// 0: hip-knee
+// 1: knee-ankle
+//float L[2];
 
 float Ref[2*NREF];
 int i_err;
 float qk_err;
 float qh_err;
+float qk_off;
+float qh_off;
 
 float t_err[4]; //knee, hip, knee', hip'
 float ttemp;
@@ -66,6 +78,7 @@ unsigned long temptime;
 float T;
 
 unsigned long count = 0;
+char incomingByte;
 
 void setup()
 {
@@ -74,6 +87,8 @@ void setup()
   digitalWrite(KNEE_ANGLE,HIGH);
   pinMode(HIP_ANGLE,OUTPUT);//Slave Select
   digitalWrite(HIP_ANGLE,HIGH);
+  pinMode(ZERO_RESET,OUTPUT);//Slave Select
+  digitalWrite(ZERO_RESET,HIGH);
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setDataMode(SPI_MODE0);
@@ -89,7 +104,6 @@ void setup()
   Serial.begin(9600);
 //  Serial.println("STARTING...");
 //  Serial.println("SETTING ZERO...");
-//  values[0] = -10000;
   
 //  uint8_t signal = SPI_T(0x70);    // set zero at set up
 //  while (signal != 0x80) {
@@ -111,6 +125,9 @@ void setup()
     Ref[i] = 0;
   }
 
+  //L[0] = 0.32;
+  //L[1] = 0.42;
+
   time = millis();
   T = time;
 }
@@ -131,13 +148,13 @@ float get_angle(int joint) {
    digitalWrite(joint,LOW);
    
    SPI_T(0x10, joint);   //issue read command
-   
    recieved = SPI_T(0x00, joint);    //issue NOP to check if encoder is ready to send
    
    while (recieved != 0x10)    //loop while encoder is not ready to send
-   {
+   { 
      recieved = SPI_T(0x00, joint); 
-     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     
+
+     //Serial.println(joint); //cleck again if encoder is still workin
      delayMicroseconds(20);    //wait a bit
    }
    
@@ -159,7 +176,22 @@ float get_angle(int joint) {
      deg = deg * 0.08789;    // aprox 360/4096
      return deg;
    }   
-  
+
+}
+
+void setzero() {
+  for (int i = 0; i < 2; i++) {
+  uint8_t signal = SPI_T(0x70, i + 3);    // set zero at set up
+  while (signal != 0x80) {
+     signal = SPI_T(0x00, i + 3);
+     }
+     digitalWrite(ZERO_RESET,LOW);
+     delay(50);
+     digitalWrite(ZERO_RESET,HIGH);
+  }
+
+  qk_off = get_torque(KNEE_TORQUE);
+  qh_off = get_torque(HIP_TORQUE);
 }
 
 float get_torque(int joint) {
@@ -185,16 +217,16 @@ void average(float* avg, float* curr, int len) {
 }
 
 //void fk() {
-//  state[6] = L[1]*sin(stateavg[1]*CONV_D2R)+L[0]*sin(stateavg[0]*CONV_D2R);
-//  state[7] = -L[1]*cos(stateavg[1]*CONV_D2R)-L[0]*cos(stateavg[0]*CONV_D2R);
+//  state[6] = L[0]*sin(stateavg[1]*CONV_D2R)+L[1]*sin(stateavg[0]*CONV_D2R);
+//  state[7] = -L[0]*cos(stateavg[1]*CONV_D2R)-L[1]*cos(stateavg[0]*CONV_D2R);
 //}
-
-// row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3
+//
+//// row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3                                                                                                                                                                                                                                                                                                                                                                                                                             
 //void jacobian(float* jacobian) {
-//  jacobian[0] = L[0]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[1]*cos(stateavg[1]*CONV_D2R);
-//  jacobian[1] = -L[0]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
-//  jacobian[2] = -L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R) - L[1]*sin(stateavg[1]*CONV_D2R);
-//  jacobian[3] = L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
+//  jacobian[0] = L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[0]*cos(stateavg[1]*CONV_D2R);
+//  jacobian[1] = -L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
+//  jacobian[2] = -L[1]*sin((stateavg[0]-stateavg[1])*CONV_D2R) - L[0]*sin(stateavg[1]*CONV_D2R);
+//  jacobian[3] = L[1]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
 //}
 
 // Returns min position error index
@@ -230,24 +262,25 @@ float phi_est(float t, float m, float b) {
 }
 
 void run_servo() {
+  // correct servos
   if (phik < MIN_PHI) {
-   ServoK.write(MIN_PHI,SPEED);
+   ServoK.write(phik,SPEED);
   } else {
    ServoK.write(phik, SPEED);
   }
   if (phih < MIN_PHI) {
-   ServoH.write(MIN_PHI,SPEED);
+   ServoH.write(phih,SPEED);
   } else {
    ServoH.write(phih, SPEED);
   }
 }
 
 void loop()
-{  
+{
        // take measurements
        state[0] = get_angle(KNEE_ANGLE)/4;
-       state[2] = get_torque(KNEE_TORQUE);
-       state[3] = get_torque(HIP_TORQUE);
+       state[2] = get_torque(KNEE_TORQUE)-qk_off;
+       state[3] = get_torque(HIP_TORQUE)-qh_off;
        state[1] = get_angle(HIP_ANGLE)/4;
        
        // calculate T for derivatives
@@ -264,10 +297,10 @@ void loop()
        qh_err = Ref[2*i_err+1]-stateavg[1] - ERR_RANGE;
        if (qk_err < 0) qk_err = 0;
        if (qh_err < 0) qh_err = 0;
-
+       
        // controls
        tk_des = K*sq(qk_err);
-       th_des = K*sq(qh_err);
+       th_des = K*sq(qh_err); 
 
        ttemp = tk_des - stateavg[2];
        t_err[2] = (t_err[0]-ttemp)/T;
@@ -286,8 +319,18 @@ void loop()
 //       state[2] = T*1000.0;
 //       state[3] = time;
 //       state[0] = count;
-       
-       if (count++ % 10 == 0) {
+
+       if (count++ % 10 ==0) {
         send_values(state, 4);
+
+        if (Serial.available() > 0) {
+                // read the incoming byte:
+                incomingByte = Serial.read();
+
+            // say what you got:
+            if (incomingByte == 'r') {
+              setzero();
+            }
+        }
        }
 }
