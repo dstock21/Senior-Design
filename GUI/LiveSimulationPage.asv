@@ -74,8 +74,6 @@ xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
 xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
 x = xa-xh;
 
-dataq = xlsread('Winter_Appendix_data.xlsx','A4.RelJointAngularKinematics', 'D5:L110');
-q = dataq(:,[4 7]); % (knee, hip)
 
 handles.timer = timer('Name','MyTimer',               ...
                        'Period',0.001,                    ... 

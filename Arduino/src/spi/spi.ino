@@ -3,16 +3,19 @@
 #include "MatrixMath.h"
 
 // UPDATE
-#define NREF 106
+#define NREF 139
 #define BETA 0 //0 = filter is off
 #define T_OFFSET 1.85
 #define T_SENSITIVITY (8*6/5.6) 
-#define PHI_M 72.1
-#define PHI_B 1155
-#define K 0
+#define K 1 // UPDATE
 #define KP 0
 #define KD 0
-#define MIN_PHI PHI_B
+#define ERR_RANGE 3 // how far off from reference is "correct" in degrees
+#define PHIK_M 72.1
+#define PHIK_B 1155
+#define PHIH_M 72.1
+#define PHIH_B 1155
+#define MIN_PHI 1150
 
 // PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
@@ -24,8 +27,8 @@
 
 // Other
 #define SPEED 160
-#define T 0.005
 #define CONV_D2R M_PI/180
+#define BEGIN_SEND -10000.0
 
 VarSpeedServo ServoH;
 VarSpeedServo ServoK;
@@ -33,30 +36,22 @@ VarSpeedServo ServoK;
 uint16_t ABSposition = 0;
 uint16_t ABSposition_last = 0;
 uint8_t temp[2];
-float values[5];
-float test = 20.0;
 
 // State:
 // 0: knee angle
 // 1: hip angle
 // 2: knee torque
 // 3: hip torque
-// 4: knee angular velocity
-// 5: hip angular velocity
-// 6: ankle positionx
-// 7: ankle positiony
-float state[8];
-float stateavg[8];
+float state[4];
+float stateavg[4];
 // 0: knee-hip
 // 1: hip-knee
 float L[2];
 
 float Ref[2*NREF];
 int i_err;
-float error;
 float qk_err;
 float qh_err;
-
 
 float t_err[4]; //knee, hip, knee', hip'
 float ttemp;
@@ -66,15 +61,10 @@ float tk_des;
 float th_des;
 
 float deg = 0.00;
-float knee_deg = 0.00;
-float hip_deg = 0.00;
-float hip_torque = 0.00;
-float knee_torque = 0.00;
-int adc_output;
-float voltage;
-float torque;
-float avg_hip = 0.00;
-float avg_knee = 0.00;
+
+unsigned long time;
+unsigned long temptime;
+float T;
 
 void setup()
 {
@@ -98,7 +88,7 @@ void setup()
   Serial.begin(9600);
 //  Serial.println("STARTING...");
 //  Serial.println("SETTING ZERO...");
-  values[0] = -10000;
+//  values[0] = -10000;
   
 //  uint8_t signal = SPI_T(0x70);    // set zero at set up
 //  while (signal != 0x80) {
@@ -116,8 +106,15 @@ void setup()
     stateavg[i] = 0;
   }
 
+  for (int i = 0; i < 2*NREF; i++) {
+    Ref[i] = 0;
+  }
+
   L[0] = 0.7;
   L[1] = 0.5;
+
+  time = millis();
+  T = time;
 }
 uint8_t SPI_T (uint8_t msg, int joint)    //Repetive SPI transmit sequence
 {
@@ -142,8 +139,7 @@ float get_angle(int joint) {
    while (recieved != 0x10)    //loop while encoder is not ready to send
    {
      recieved = SPI_T(0x00, joint); 
-     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     
-     //delay(2);    //wait a bit
+     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     delay(2);    //wait a bit
    }
    
    temp[0] = SPI_T(0x00, joint);    //Recieve MSB
@@ -169,16 +165,17 @@ float get_angle(int joint) {
   
 }
 
-float get_torque(int joint, float avg) {
-  adc_output = analogRead(joint);
-  voltage = (5.0/1024)*adc_output;
+float get_torque(int joint) {
+  float adc_output = analogRead(joint);
+  float voltage = (5.0/1024)*adc_output;
   
-  torque = (voltage-T_OFFSET)*T_SENSITIVITY;
+  float torque = (voltage-T_OFFSET)*T_SENSITIVITY;
   
   return torque;
 }
 
 void send_values(float* values, int len) {
+  Serial.println(BEGIN_SEND);
   for (int i = 0; i < len; i++) {
     Serial.println(values[i]);
   }
@@ -190,25 +187,25 @@ void average(float* avg, float* curr, int len) {
   }
 }
 
-void fk() {
-  state[6] = L[1]*sin(stateavg[1]*CONV_D2R)+L[0]*sin(stateavg[0]*CONV_D2R);
-  state[7] = -L[1]*cos(stateavg[1]*CONV_D2R)-L[0]*cos(stateavg[0]*CONV_D2R);
-}
+//void fk() {
+//  state[6] = L[1]*sin(stateavg[1]*CONV_D2R)+L[0]*sin(stateavg[0]*CONV_D2R);
+//  state[7] = -L[1]*cos(stateavg[1]*CONV_D2R)-L[0]*cos(stateavg[0]*CONV_D2R);
+//}
 
 // row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3
-void jacobian(float* jacobian) {
-  jacobian[0] = L[0]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[1]*cos(stateavg[1]*CONV_D2R);
-  jacobian[1] = -L[0]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
-  jacobian[2] = -L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R) - L[1]*sin(stateavg[1]*CONV_D2R);
-  jacobian[3] = L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
-}
+//void jacobian(float* jacobian) {
+//  jacobian[0] = L[0]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[1]*cos(stateavg[1]*CONV_D2R);
+//  jacobian[1] = -L[0]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
+//  jacobian[2] = -L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R) - L[1]*sin(stateavg[1]*CONV_D2R);
+//  jacobian[3] = L[0]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
+//}
 
 // Returns min position error index
 int err() {
   // joint space implementation
   float err;
   int i_err;
-  error = sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]);
+  float error = sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]);
   for(int i = 1; i < NREF; i++) {
     err = sq(Ref[2*i]-stateavg[0]) + sq(Ref[2*i+1]-stateavg[1]);
     if(err < error) {
@@ -219,9 +216,8 @@ int err() {
   return i_err;
 }
 
-float phi_est(float t) {
-  // TODO
-  float phi_des = PHI_M*t + PHI_B;
+float phi_est(float t, float m, float b) {
+  float phi_des = m*t + b;
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }
@@ -229,40 +225,40 @@ float phi_est(float t) {
 }
 
 void run_servo() {
-   // correct servos
-   if (phik < MIN_PHI) {
-    ServoK.write(phik,SPEED);
-   } else {
-    ServoK.write(phik, SPEED);
-   }
-   if (phih < MIN_PHI) {
-    ServoK.write(phih,SPEED);
-   } else {
-    ServoK.write(phih, SPEED);
-   }
+  if (phik < MIN_PHI) {
+   ServoK.write(MIN_PHI,SPEED);
+  } else {
+   ServoK.write(phik, SPEED);
+  }
+  if (phih < MIN_PHI) {
+   ServoK.write(MIN_PHI,SPEED);
+  } else {
+   ServoK.write(phih, SPEED);
+  }
 }
 
 void loop()
-{
+{  
        // take measurements
-       values[1] = get_angle(KNEE_ANGLE)/4;
-       values[2] = get_angle(HIP_ANGLE)/4;
-       values[3] = get_torque(KNEE_TORQUE, avg_hip);
-       values[4] = get_torque(HIP_TORQUE, avg_knee);
+       state[0] = get_angle(KNEE_ANGLE)/4;
+       state[1] = get_angle(HIP_ANGLE)/4;
+       state[2] = get_torque(KNEE_TORQUE);
+       state[3] = get_torque(HIP_TORQUE);
 
-       // calculate state
-       for(int i = 0; i < 4; i++) {
-        state[i] = values[i+1];
-       }
-       state[4] = (stateavg[0]-state[0])/T;
-       state[5] = (stateavg[1]-state[1])/T;
-       average(stateavg, state, 8);
+       // calculate T for derivatives
+       temptime = time;
+       time = millis();
+       T = (time-temptime)/1000.0;
+
+       average(stateavg, state, 4);
 
        // compare to reference
        i_err = err();
 
-       qk_err = Ref[2*i_err]-stateavg[0];
-       qh_err = Ref[2*i_err+1]-stateavg[1];
+       qk_err = Ref[2*i_err]-stateavg[0] - ERR_RANGE;
+       qh_err = Ref[2*i_err+1]-stateavg[1] - ERR_RANGE;
+       if (qk_err < 0) qk_err = 0;
+       if (qh_err < 0) qh_err = 0;
 
        // controls
        tk_des = K*sq(qk_err);
@@ -275,10 +271,11 @@ void loop()
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
-       phik = phi_est(tk_des) + KP*t_err[0] + KD*t_err[2];
-       phih = phi_est(th_des) + KP*t_err[1] + KD*t_err[3];
+       phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
+       phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
 
+       // correct servos
        run_servo();
        
-       send_values(values, 5);
+       send_values(state, 5);
 }
