@@ -46,7 +46,6 @@ float state[4];
 float stateavg[4];
 // 0: knee-hip
 // 1: hip-knee
-float L[2];
 
 float Ref[2*NREF];
 int i_err;
@@ -101,7 +100,7 @@ void setup()
   ServoH.attach(SERVO_HIP);
   ServoK.attach(SERVO_KNEE);
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 4; i++) {
     state[i] = 0;
     stateavg[i] = 0;
   }
@@ -109,9 +108,6 @@ void setup()
   for (int i = 0; i < 2*NREF; i++) {
     Ref[i] = 0;
   }
-
-  L[0] = 0.7;
-  L[1] = 0.5;
 
   time = millis();
   T = time;
@@ -161,7 +157,7 @@ float get_angle(int joint) {
      return deg;
    }   
 
-   delay(10);
+   delay(2);
   
 }
 
@@ -231,9 +227,9 @@ void run_servo() {
    ServoK.write(phik, SPEED);
   }
   if (phih < MIN_PHI) {
-   ServoK.write(MIN_PHI,SPEED);
+   ServoH.write(MIN_PHI,SPEED);
   } else {
-   ServoK.write(phih, SPEED);
+   ServoH.write(phih, SPEED);
   }
 }
 
