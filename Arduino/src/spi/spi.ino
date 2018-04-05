@@ -4,7 +4,7 @@
 
 // UPDATE
 #define NREF 139
-#define BETA 0 //0 = filter is off
+#define BETA 0.9 //0 = filter is off
 #define T_OFFSET 1.85
 #define T_SENSITIVITY (8*6/5.6) 
 #define K 1 // UPDATE
@@ -65,6 +65,8 @@ unsigned long time;
 unsigned long temptime;
 float T;
 
+unsigned long count = 0;
+
 void setup()
 {
   // encoder set up
@@ -75,7 +77,7 @@ void setup()
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setDataMode(SPI_MODE0);
-  SPI.setClockDivider(SPI_CLOCK_DIV32); 
+  SPI.setClockDivider(SPI_CLOCK_DIV16); 
 
   //torque sensor set up
   pinMode(HIP_TORQUE, INPUT);
@@ -135,7 +137,8 @@ float get_angle(int joint) {
    while (recieved != 0x10)    //loop while encoder is not ready to send
    {
      recieved = SPI_T(0x00, joint); 
-     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     delay(2);    //wait a bit
+     //Serial.println(recieved, HEX); //cleck again if encoder is still workin     
+     delayMicroseconds(20);    //wait a bit
    }
    
    temp[0] = SPI_T(0x00, joint);    //Recieve MSB
@@ -156,8 +159,6 @@ float get_angle(int joint) {
      deg = deg * 0.08789;    // aprox 360/4096
      return deg;
    }   
-
-   delay(2);
   
 }
 
@@ -202,10 +203,18 @@ int err() {
   float err;
   int i_err;
   float error = sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]);
-  for(int i = 1; i < NREF; i++) {
+  for(int i = 3; i < NREF; i+=3) {
     err = sq(Ref[2*i]-stateavg[0]) + sq(Ref[2*i+1]-stateavg[1]);
     if(err < error) {
       i_err = i;
+      error = err;
+    }
+  }
+  for(int i = i_err-2; i < i_err+3; i++) {
+    int j = i % NREF;
+    err = sq(Ref[2*j]-stateavg[0]) + sq(Ref[2*j+1]-stateavg[1]);
+    if(err < error) {
+      i_err = j;
       error = err;
     }
   }
@@ -237,10 +246,10 @@ void loop()
 {  
        // take measurements
        state[0] = get_angle(KNEE_ANGLE)/4;
-       state[1] = get_angle(HIP_ANGLE)/4;
        state[2] = get_torque(KNEE_TORQUE);
        state[3] = get_torque(HIP_TORQUE);
-
+       state[1] = get_angle(HIP_ANGLE)/4;
+       
        // calculate T for derivatives
        temptime = time;
        time = millis();
@@ -271,7 +280,14 @@ void loop()
        phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
-       run_servo();
+       // run_servo();
+
+       // troubleshooting timer
+//       state[2] = T*1000.0;
+//       state[3] = time;
+//       state[0] = count;
        
-       send_values(state, 5);
+       if (count++ % 10 == 0) {
+        send_values(state, 4);
+       }
 }
