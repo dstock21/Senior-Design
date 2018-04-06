@@ -12,12 +12,11 @@
 
 // UPDATE
 #define NREF 139
-#define BETA 0.9 //0 = filter is off
-#define T_OFFSET_K 1.85
+#define BETA 0.85 //0 = filter is off
+#define T_OFFSET_K 1.83
 #define T_SENSITIVITY_K (8*6/5.6)
 #define T_OFFSET_H 1.85
 #define T_SENSITIVITY_H (8*6/5.6)
-#define K 0.1 // UPDATE
 #define KP 0
 #define KD 0
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
@@ -30,8 +29,8 @@
 // PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
 #define HIP_ANGLE 4 //Chip or Slave select
-#define KNEE_TORQUE A1
-#define HIP_TORQUE A2
+#define KNEE_TORQUE A0
+#define HIP_TORQUE A1
 #define SERVO_KNEE 5
 #define SERVO_HIP 6
 #define ZERO_RESET 7
@@ -41,6 +40,8 @@
 #define CONV_D2R M_PI/180
 #define BEGIN_SEND -10000.0
 #define MAX_TORQUE 10
+#define WRAP_THRESH 45
+#define WRAP 90
 
 VarSpeedServo ServoH;
 VarSpeedServo ServoK;
@@ -48,6 +49,7 @@ VarSpeedServo ServoK;
 uint16_t ABSposition = 0;
 uint16_t ABSposition_last = 0;
 uint8_t temp[2];
+float k = 0.1; // UPDATE
 
 // State:
 // 0: knee angle
@@ -87,6 +89,10 @@ float tk_des;
 float th_des;
 
 float deg = 0.00;
+int wrap_k = 0;
+int wrap_h = 0;
+float ka;
+float ha;
 
 unsigned long time;
 unsigned long temptime;
@@ -97,6 +103,9 @@ char incomingByte;
 
 void setup()
 {
+  //For testing
+  pinMode(LED_BUILTIN, OUTPUT);
+  
   // encoder set up
   pinMode(KNEE_ANGLE,OUTPUT);//Slave Select
   digitalWrite(KNEE_ANGLE,HIGH);
@@ -193,14 +202,17 @@ float get_angle(int joint) {
 
 void setzero() {
   for (int i = 0; i < 2; i++) {
-  uint8_t signal = SPI_T(0x70, i + 3);    // set zero at set up
+  SPI.begin();
+  uint8_t signal = SPI_T(0x70, i + 3);    // set zero at set up  
   while (signal != 0x80) {
      signal = SPI_T(0x00, i + 3);
-     }
-     digitalWrite(ZERO_RESET,LOW);
-     delay(50);
-     digitalWrite(ZERO_RESET,HIGH);
+     } 
+  SPI.end();    //end transmition
+    
   }
+  digitalWrite(ZERO_RESET,LOW);
+  delay(50);
+  digitalWrite(ZERO_RESET,HIGH);
 
   qk_off = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K);
   qh_off = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H);
@@ -209,10 +221,11 @@ void setzero() {
 float get_torque(int joint, float off, float sens) {
   float adc_output = analogRead(joint);
   float voltage = (5.0/1024)*adc_output;
-  
+
   float torque = (voltage-off)*sens;
-  
-  return torque;
+
+  return voltage;
+  //return torque;
 }
 
 void send_values(float* values, int len) {
@@ -266,7 +279,7 @@ int err() {
 }
 
 float phi_est(float t, float m, float b) {
-  float phi_des = m*t + b;
+  float phi_des = m*abs(t) + b;
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }
@@ -289,11 +302,35 @@ void run_servo() {
 
 void loop()
 {
+       ka = state[0];
+       ha = state[1];
+       
        // take measurements
-       state[0] = get_angle(KNEE_ANGLE)/4;
+       state[0] = (get_angle(KNEE_ANGLE)/4 + WRAP*wrap_k);
        state[2] = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K)-qk_off;
        state[3] = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H)-qh_off;
-       state[1] = get_angle(HIP_ANGLE)/4;
+       state[1] = (get_angle(HIP_ANGLE)/4 + WRAP*wrap_h);
+
+       if (abs(ka-state[0]) > WRAP_THRESH) {
+        if (ka > state[0]) {
+          state[0] += WRAP;
+          wrap_k +=1;
+        }
+        else {
+          state[0] -= WRAP;
+          wrap_k -= 1;
+        }
+       }
+       if (abs(ha-state[1]) > WRAP_THRESH) {
+        if (ha > state[1]) {
+          state[1] += WRAP;
+          wrap_h +=1;
+        }
+        else {
+          state[1] -= WRAP;
+          wrap_h -=1;
+        }
+       }
        
        // calculate T for derivatives
        temptime = time;
@@ -312,15 +349,15 @@ void loop()
        if (qh_err < 0) qh_err = 0;
        
        // controls
-       tk_des = K*sq(qk_err);
-       th_des = K*sq(qh_err);
+       tk_des = k*sq(qk_err);
+       th_des = k*sq(qh_err);
        if (tk_des > MAX_TORQUE) tk_des = MAX_TORQUE;
        if (th_des > MAX_TORQUE) th_des = MAX_TORQUE;
 
        ttemp = tk_des - stateavg[2];
        t_err[2] = (t_err[0]-ttemp)/T;
        t_err[0] = ttemp;
-       ttemp = tk_des - stateavg[3];
+       ttemp = th_des - stateavg[3];
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
@@ -330,29 +367,48 @@ void loop()
        // correct servos
        //run_servo();
 
-       if (count % 600 == 0) {
-        ServoK.write(1400,SPEED);
-        ServoH.write(1600,SPEED);
-       } else if (count % 100 == 50) {
-        ServoK.write(1400,SPEED);
-        ServoH.write(1600,SPEED);
-       }
+       //Test servos
+//       if (count % 200 == 0) {
+//        ServoK.write(1400,SPEED);
+//        ServoH.write(1600,SPEED);
+//        digitalWrite(LED_BUILTIN, HIGH);
+//       } else if (count % 200 == 100) {
+//        ServoK.write(1600,SPEED);
+//        ServoH.write(1400,SPEED);
+//        digitalWrite(LED_BUILTIN, LOW);
+//       }
 
        // troubleshooting timer
 //       state[2] = T*1000.0;
 //       state[3] = time;
 //       state[0] = count;
 
-       if (count++ % 10 ==0) {
-        send_values(state, 4);
+       if (count++ % 20 ==0) {
+        send_values(stateavg, 4);
+        count = 1;
+
+        
 
         if (Serial.available() > 0) {
+          delay(200);
                 // read the incoming byte:
                 incomingByte = Serial.read();
 
             // say what you got:
             if (incomingByte == 'r') {
               setzero();
+              
+            }
+
+            if (incomingByte == 'k') {
+              int ticker = 0;
+              while (Serial.available() < 4 && ticker < 30) {
+                continue;
+                ticker++;
+              }
+              if (Serial.available() >= 4) {
+                k = Serial.read();
+              }
             }
         }
        }
