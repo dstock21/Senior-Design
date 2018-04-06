@@ -13,8 +13,10 @@
 // UPDATE
 #define NREF 139
 #define BETA 0.9 //0 = filter is off
-#define T_OFFSET 1.85
-#define T_SENSITIVITY (8*6/5.6) 
+#define T_OFFSET_K 1.85
+#define T_SENSITIVITY_K (8*6/5.6)
+#define T_OFFSET_H 1.85
+#define T_SENSITIVITY_H (8*6/5.6)
 #define K 0.1 // UPDATE
 #define KP 0
 #define KD 0
@@ -38,6 +40,7 @@
 #define SPEED 160
 #define CONV_D2R M_PI/180
 #define BEGIN_SEND -10000.0
+#define MAX_TORQUE 10
 
 VarSpeedServo ServoH;
 VarSpeedServo ServoK;
@@ -131,10 +134,7 @@ void setup()
   for (int i = 0; i < 4; i++) {
     state[i] = 0;
     stateavg[i] = 0;
-  }
-
-  for (int i = 0; i < 2*NREF; i++) {
-    Ref[i] = 0;
+    t_err[i] = 0;
   }
 
   //L[0] = 0.32;
@@ -202,15 +202,15 @@ void setzero() {
      digitalWrite(ZERO_RESET,HIGH);
   }
 
-  qk_off = get_torque(KNEE_TORQUE);
-  qh_off = get_torque(HIP_TORQUE);
+  qk_off = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K);
+  qh_off = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H);
 }
 
-float get_torque(int joint) {
+float get_torque(int joint, float off, float sens) {
   float adc_output = analogRead(joint);
   float voltage = (5.0/1024)*adc_output;
   
-  float torque = (voltage-T_OFFSET)*T_SENSITIVITY;
+  float torque = (voltage-off)*sens;
   
   return torque;
 }
@@ -291,14 +291,15 @@ void loop()
 {
        // take measurements
        state[0] = get_angle(KNEE_ANGLE)/4;
-       state[2] = get_torque(KNEE_TORQUE)-qk_off;
-       state[3] = get_torque(HIP_TORQUE)-qh_off;
+       state[2] = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K)-qk_off;
+       state[3] = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H)-qh_off;
        state[1] = get_angle(HIP_ANGLE)/4;
        
        // calculate T for derivatives
        temptime = time;
-       time = millis();
-       T = (time-temptime)/1000.0;
+       time = micros(); // resets to 0 every ~40 min
+       // if micros() wraps, T doesn't update. Next iteration time>temptime and T updates
+       if (time > temptime) T = (time-temptime)/1000000.0; 
 
        average(stateavg, state, 4);
 
@@ -312,7 +313,9 @@ void loop()
        
        // controls
        tk_des = K*sq(qk_err);
-       th_des = K*sq(qh_err); 
+       th_des = K*sq(qh_err);
+       if (tk_des > MAX_TORQUE) tk_des = MAX_TORQUE;
+       if (th_des > MAX_TORQUE) th_des = MAX_TORQUE;
 
        ttemp = tk_des - stateavg[2];
        t_err[2] = (t_err[0]-ttemp)/T;
@@ -325,7 +328,15 @@ void loop()
        phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
-       // run_servo();
+       //run_servo();
+
+       if (count % 600 == 0) {
+        ServoK.write(1400,SPEED);
+        ServoH.write(1600,SPEED);
+       } else if (count % 100 == 50) {
+        ServoK.write(1400,SPEED);
+        ServoH.write(1600,SPEED);
+       }
 
        // troubleshooting timer
 //       state[2] = T*1000.0;
