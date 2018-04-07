@@ -13,10 +13,10 @@
 // UPDATE
 #define NREF 139
 #define BETA 0.85 //0 = filter is off
-#define T_OFFSET_K 1.83
-#define T_SENSITIVITY_K (8*6/5.6)
+#define T_OFFSET_K 1.85
+#define T_SENSITIVITY_K 6.82
 #define T_OFFSET_H 1.85
-#define T_SENSITIVITY_H (8*6/5.6)
+#define T_SENSITIVITY_H 6.667
 #define KP 0
 #define KD 0
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
@@ -224,8 +224,7 @@ float get_torque(int joint, float off, float sens) {
 
   float torque = (voltage-off)*sens;
 
-  return voltage;
-  //return torque;
+  return torque;
 }
 
 void send_values(float* values, int len) {
