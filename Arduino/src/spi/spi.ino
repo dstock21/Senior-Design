@@ -13,8 +13,8 @@
 // UPDATE
 #define NREF 139
 #define BETA 0.85 //0 = filter is off
-#define T_OFFSET_K 1.85
-#define T_SENSITIVITY_K 6.82
+#define T_OFFSET_K 1.87
+#define T_SENSITIVITY_K 7.1
 #define T_OFFSET_H 1.85
 #define T_SENSITIVITY_H 6.667
 #define KP 0
@@ -24,7 +24,8 @@
 #define PHIK_B 1155
 #define PHIH_M 72.1
 #define PHIH_B 1155
-#define MIN_PHI 1150
+#define MIN_PHI 1200
+#define MAX_PHI 2250
 
 // PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
@@ -62,19 +63,22 @@ float stateavg[4];
 // 1: knee-ankle
 //float L[2];
 
-float Ref[2*NREF] = {18.3,6.7,17.75,4.7,17.2,2.7,16.7,1.3,16.2,-0.1,15.7,-0.95,15.2,-1.8,14.75,
--2.05,14.3,-2.3,13.95,-2.05,13.6,-1.8,13.2,-1.2,12.8,-0.6,12.5,0.25,12.2,1.1,11.95,2.05,11.7,3,
-11.55,4.05,11.4,5.1,11.3,6.25,11.2,7.4,11.25,8.6,11.3,9.8,11.4,10.95,11.5,12.1,11.55,13.05,11.6,
-14,11.5,14.7,11.4,15.4,11.1,15.8,10.8,16.2,10.3,16.25,9.8,16.3,9.2,16.1,8.6,15.9,7.9,15.55,7.2,15.2,
-6.5,14.7,5.8,14.2,5.15,13.7,4.5,13.2,4,12.75,3.5,12.3,3.1,11.85,2.7,11.4,2.35,11.05,2,10.7,1.75,10.4,
-1.5,10.1,1.3,9.75,1.1,9.4,0.95,9.1,0.8,8.8,0.6,8.5,0.4,8.2,0.2,7.9,0,7.6,-0.25,7.3,-0.5,7,-0.85,6.7,
--1.2,6.4,-1.5,6.15,-1.8,5.9,-2.15,5.65,-2.5,5.4,-2.8,5.3,-3.1,5.2,-3.4,5.15,-3.7,5.1,-3.95,5.3,-4.2,
-5.5,-4.4,5.85,-4.6,6.2,-4.75,6.75,-4.9,7.3,-5.05,8.1,-5.2,8.9,-5.4,9.9,-5.6,10.9,-5.75,12.1,-5.9,13.3,
--6,14.75,-6.1,16.2,-6.15,17.9,-6.2,19.6,-6.2,21.55,-6.2,23.5,-6.1,25.65,-6,27.8,-5.85,30.1,-5.7,32.4,
--5.35,34.9,-5,37.4,-4.5,39.95,-4,42.5,-3.25,45.05,-2.5,47.6,-1.5,50,-0.5,52.4,0.65,54.55,1.8,56.7,3.15,
-58.55,4.5,60.4,5.9,61.9,7.3,63.4,8.75,64.4,10.2,65.4,11.55,65.95,12.9,66.5,14.1,66.55,15.3,66.6,16.3,
-66.15,17.3,65.7,18.1,64.8,18.9,63.9,19.5,62.6,20.1,61.3,20.5,59.65,20.9,58,21.25,56.1,21.6,54.2,21.85,
-52.05,22.1,49.9,22.25,47.55,22.4,45.2,22.5,42.6,22.6,40,22.55,37.25};
+float Ref[2*NREF] = {6.7,18.3,4.7,17.75,2.7,17.2,1.3,16.7,-0.1,16.2,-0.95,15.7,-1.8,
+15.2,-2.05,14.75,-2.3,14.3,-2.05,13.95,-1.8,13.6,-1.2,13.2,-0.6,12.8,0.25,12.5,1.1,
+12.2,2.05,11.95,3,11.7,4.05,11.55,5.1,11.4,6.25,11.3,7.4,11.2,8.6,11.25,9.8,11.3,10.95,
+11.4,12.1,11.5,13.05,11.55,14,11.6,14.7,11.5,15.4,11.4,15.8,11.1,16.2,10.8,16.25,10.3,
+16.3,9.8,16.1,9.2,15.9,8.6,15.55,7.9,15.2,7.2,14.7,6.5,14.2,5.8,13.7,5.15,13.2,4.5,
+12.75,4,12.3,3.5,11.85,3.1,11.4,2.7,11.05,2.35,10.7,2,10.4,1.75,10.1,1.5,9.75,1.3,9.4,
+1.1,9.1,0.95,8.8,0.8,8.5,0.6,8.2,0.4,7.9,0.2,7.6,0,7.3,-0.25,7,-0.5,6.7,-0.85,6.4,-1.2,
+6.15,-1.5,5.9,-1.8,5.65,-2.15,5.4,-2.5,5.3,-2.8,5.2,-3.1,5.15,-3.4,5.1,-3.7,5.3,-3.95,
+5.5,-4.2,5.85,-4.4,6.2,-4.6,6.75,-4.75,7.3,-4.9,8.1,-5.05,8.9,-5.2,9.9,-5.4,10.9,-5.6,
+12.1,-5.75,13.3,-5.9,14.75,-6,16.2,-6.1,17.9,-6.15,19.6,-6.2,21.55,-6.2,23.5,-6.2,25.65,
+-6.1,27.8,-6,30.1,-5.85,32.4,-5.7,34.9,-5.35,37.4,-5,39.95,-4.5,42.5,-4,45.05,-3.25,47.6,
+-2.5,50,-1.5,52.4,-0.5,54.55,0.65,56.7,1.8,58.55,3.15,60.4,4.5,61.9,5.9,63.4,7.3,64.4,
+8.75,65.4,10.2,65.95,11.55,66.5,12.9,66.55,14.1,66.6,15.3,66.15,16.3,65.7,17.3,64.8,18.1,
+63.9,18.9,62.6,19.5,61.3,20.1,59.65,20.5,58,20.9,56.1,21.25,54.2,21.6,52.05,21.85,49.9,
+22.1,47.55,22.25,45.2,22.4,42.6,22.5,40,22.6,37.25,22.55,34.5,22.5,31.55,22.35,28.6,22.2,
+25.6,21.9,22.6,21.6,19.55,21.15,16.5,20.7,13.7,20.15,10.9,19.6,8.35,18.95,5.8,18.3};
 int i_err;
 float qk_err;
 float qh_err;
@@ -83,8 +87,8 @@ float qh_off;
 
 float t_err[4]; //knee, hip, knee', hip'
 float ttemp;
-float phik;
-float phih;
+float phik = MIN_PHI;
+float phih = MIN_PHI;
 float tk_des;
 float th_des;
 
@@ -258,15 +262,16 @@ int err() {
   // joint space implementation
   float err;
   int i_err;
+  int skip = 2;
   float error = sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]);
-  for(int i = 3; i < NREF; i+=3) {
+  for(int i = 1+skip; i < NREF; i+=1+skip) {
     err = sq(Ref[2*i]-stateavg[0]) + sq(Ref[2*i+1]-stateavg[1]);
     if(err < error) {
       i_err = i;
       error = err;
     }
   }
-  for(int i = i_err-2; i < i_err+3; i++) {
+  for(int i = i_err-skip; i <= i_err+skip; i++) {
     int j = i % NREF;
     err = sq(Ref[2*j]-stateavg[0]) + sq(Ref[2*j+1]-stateavg[1]);
     if(err < error) {
@@ -288,12 +293,16 @@ float phi_est(float t, float m, float b) {
 void run_servo() {
   // correct servos
   if (phik < MIN_PHI) {
-   ServoK.write(phik,SPEED);
+   ServoK.write(MIN_PHI,SPEED);
+  } else if (phik > MAX_PHI) {
+   ServoK.write(MAX_PHI,SPEED);
   } else {
    ServoK.write(phik, SPEED);
   }
   if (phih < MIN_PHI) {
-   ServoH.write(phih,SPEED);
+   ServoH.write(MIN_PHI,SPEED);
+  } else if (phih > MAX_PHI) {
+   ServoH.write(MAX_PHI,SPEED);
   } else {
    ServoH.write(phih, SPEED);
   }
@@ -305,31 +314,31 @@ void loop()
        ha = state[1];
        
        // take measurements
-       state[0] = (get_angle(KNEE_ANGLE)/4 + WRAP*wrap_k);
+       //state[0] = (get_angle(KNEE_ANGLE)/4 + WRAP*wrap_k);
        state[2] = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K)-qk_off;
        state[3] = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H)-qh_off;
-       state[1] = (get_angle(HIP_ANGLE)/4 + WRAP*wrap_h);
+       //state[1] = (get_angle(HIP_ANGLE)/4 + WRAP*wrap_h);
 
-       if (abs(ka-state[0]) > WRAP_THRESH) {
-        if (ka > state[0]) {
-          state[0] += WRAP;
-          wrap_k +=1;
-        }
-        else {
-          state[0] -= WRAP;
-          wrap_k -= 1;
-        }
-       }
-       if (abs(ha-state[1]) > WRAP_THRESH) {
-        if (ha > state[1]) {
-          state[1] += WRAP;
-          wrap_h +=1;
-        }
-        else {
-          state[1] -= WRAP;
-          wrap_h -=1;
-        }
-       }
+//       if (abs(ka-state[0]) > WRAP_THRESH) {
+//        if (ka > state[0]) {
+//          state[0] += WRAP;
+//          wrap_k +=1;
+//        }
+//        else {
+//          state[0] -= WRAP;
+//          wrap_k -= 1;
+//        }
+//       }
+//       if (abs(ha-state[1]) > WRAP_THRESH) {
+//        if (ha > state[1]) {
+//          state[1] += WRAP;
+//          wrap_h +=1;
+//        }
+//        else {
+//          state[1] -= WRAP;
+//          wrap_h -=1;
+//        }
+//       }
        
        // calculate T for derivatives
        temptime = time;
@@ -342,8 +351,8 @@ void loop()
        // compare to reference
        i_err = err();
 
-       qk_err = Ref[2*i_err]-stateavg[0] - ERR_RANGE;
-       qh_err = Ref[2*i_err+1]-stateavg[1] - ERR_RANGE;
+       qk_err = abs(Ref[2*i_err]-stateavg[0]) - ERR_RANGE;
+       qh_err = abs(Ref[2*i_err+1]-stateavg[1]) - ERR_RANGE;
        if (qk_err < 0) qk_err = 0;
        if (qh_err < 0) qh_err = 0;
        
@@ -360,20 +369,20 @@ void loop()
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
-       phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
-       phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
+       //phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
+       //phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
-       //run_servo();
+       run_servo();
 
        //Test servos
 //       if (count % 200 == 0) {
-//        ServoK.write(1400,SPEED);
-//        ServoH.write(1600,SPEED);
+//        ServoK.write(MIN_PHI,SPEED);
+//        ServoH.write(MAX_PHI,SPEED);
 //        digitalWrite(LED_BUILTIN, HIGH);
 //       } else if (count % 200 == 100) {
-//        ServoK.write(1600,SPEED);
-//        ServoH.write(1400,SPEED);
+//        ServoK.write(MAX_PHI,SPEED);
+//        ServoH.write(MIN_PHI,SPEED);
 //        digitalWrite(LED_BUILTIN, LOW);
 //       }
 
@@ -382,11 +391,11 @@ void loop()
 //       state[3] = time;
 //       state[0] = count;
 
+       stateavg[2] = tk_des;
+       stateavg[3] = th_des;
+
        if (count++ % 20 ==0) {
         send_values(stateavg, 4);
-        count = 1;
-
-        
 
         if (Serial.available() > 0) {
           delay(200);
@@ -406,7 +415,41 @@ void loop()
                 ticker++;
               }
               if (Serial.available() >= 4) {
-                k = Serial.read();
+                k = Serial.parseFloat();
+              }
+            }
+
+            if (incomingByte == 's') {
+              int ticker = 0;
+              while (Serial.available() < 4 && ticker < 30) {
+                continue;
+                ticker++;
+              }
+              if (Serial.available() >= 4) {
+                phik = Serial.parseFloat();
+                phih = phik;
+              }
+            }
+
+            if (incomingByte == 'a') {
+              int ticker = 0;
+              while (Serial.available() < 4 && ticker < 30) {
+                continue;
+                ticker++;
+              }
+              if (Serial.available() >= 4) {
+                state[0] = Serial.parseFloat();
+              }
+            }
+
+            if (incomingByte == 'b') {
+              int ticker = 0;
+              while (Serial.available() < 4 && ticker < 30) {
+                continue;
+                ticker++;
+              }
+              if (Serial.available() >= 4) {
+                state[1] = Serial.parseFloat();
               }
             }
         }
