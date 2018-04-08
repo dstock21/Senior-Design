@@ -1,4 +1,4 @@
-function e = err(q, qr)
+function [ir, e] = err(q, qr)
 
 err = inf;
 for k = 1:length(qr)
