@@ -27,9 +27,6 @@ qdot = dataq(:,[8 5 2]);
 qdotdot = dataq(:,[9 6 3]);
 
 % moments
-Ma = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'I6:I111');
-Mk = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'P6:P111');
-Mh = xlsread('Winter_Appendix_data.xlsx','A5.ReactionForces&Moments', 'X6:X111');
 
 %% calculations
 global L

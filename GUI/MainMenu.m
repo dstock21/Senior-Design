@@ -54,6 +54,26 @@ function MainMenu_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for MainMenu
 handles.output = hObject;
+handles.output = hObject;
+% This creates the 'background' axes
+ha = axes('units','normalized','position',[0, 0 1 1]);
+% Move the background axes to the bottom
+I=imread('MainMenu.png');
+hi = imagesc(I);
+uistack(ha,'bottom');
+set(ha,'handlevisibility','off','visible','off');
+
+
+axes(handles.axes1);
+set(gca,'xtick',[]);
+set(gca,'ytick',[]);
+
+% Logo
+% The image used below, is in the Image Processing Toolbox.  If you do not have %access to this toolbox, you can use another image file instead.
+I=imread('logo.png');
+hi = imshow(I);
+set(ha,'handlevisibility','off', ...
+            'visible','off');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -176,6 +196,6 @@ function pushbutton4_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 contents = get(handles.popupmenu1,'String'); 
-ts = contents{get(handles.popupmen1,'Value')};
+ts = contents{get(handles.popupmenu1,'Value')};
 setappdata(0,'ts',ts);
 DeadSimulationPage;

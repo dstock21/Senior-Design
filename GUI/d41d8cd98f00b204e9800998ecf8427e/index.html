@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html  xmlns="http://www.w3.org/1999/xhtml">
+   <head>
+      <title>Matlab CSS (MSS)</title>
+	  <meta name="author" content="Joris Gillis"/>
+      <link rel="stylesheet" type="text/css" media="screen" href="index.css"/>
+	  <link rel="author" href="http://users.telenet.be/root-jg/me.html"/>
+	  <link rel="home" href="http://student.kuleuven.be/~s0170633"/>
+	  <link rel="up" href="http://student.kuleuven.be/~s0170633/projects"/>
+	  <link rel="copyright" href="http://users.telenet.be/root-jg/GPL.txt"/>
+   </head>
+   <body>
+		<h1>Matlab CSS</h1>
+		<h2>Description and goal of the project</h2>
+		<p>
+		Matlab <abbr title="Cascading Stylesheets">CSS</abbr> (<abbr title="Matlab css">MSS</abbr>) tries to bring the power of <a class="ref" title="Leading the Web to Its Full Potential..." href="www.w3c.org"><abbr title="World Wide Web Consortium">W3C</abbr></a>'s <a class="ref" href="http://www.w3.org/Style/CSS/">Cascading Stylesheets</a> to <a class="ref"  href="http://www.mathworks.com/products/matlab/">Matlab</a> <a class="ref" href="http://www.mathworks.com/access/helpdesk/help/techdoc/creating_guis/gs_about.html#998400" title="About GUIs in matlab"><abbr title="Graphical User Interface">GUI</abbr>s</a>.
+		</p>
+		<p>
+			With <abbr title="Matlab css">MSS</abbr>, you have easy control over the appearance of all your GUI's through a simple CSS file.
+		</p>
+		<h2>Download</h2>
+		<p>
+		You can access the project's files in to ways: <a href="http://student.kuleuven.be/~s0170633/projects/MSS/all.zip">zip archive</a> or <a href="https://svn.ulyssis.org/repos/pg/MSS/trunk" title="userid: guest, password: guest">svn</a>.
+		</p>
+		<h2>What can be styled with <abbr title="Matlab css">MSS</abbr>?</h2>
+		<p>
+		The primary target for <abbr title="Matlab css">MSS</abbr> are <abbr title="Graphical User Interface">GUI</abbr>s designed with GUIDE. But in fact, you could use it for plain figures or even any type of handle-enabled object.
+		</p>
+		<h2>What styles can be applied?</h2>
+		<p>Any field of a handle-object can be set with <abbr title="Matlab css">MSS</abbr>. Everywhere you would normally use <code class="matlab">set(handle,'myproperty',myvalue)</code>, you could use the <abbr title="Matlab css">MSS</abbr> equivalent <code class="MSS">handle {myproperty: myvalue}</code>.</p>
+		
+		<h2>Syntax table</h2>
+		<dl>
+		   <dt><code class="MSS">* {FontSize: 20} </code></dt>
+		   <dd>I like big fonts all over the place</dd>
+		   
+		   <dt><code class="MSS">#next {background: url('forward.png')} </code></dt>
+		   <dd>Give any object with a tag 'next' a nice background image</dd>
+		   
+		   <dt><code class="MSS">uipanel uicontrol {ForegroundColor: 1 0 0} </code></dt>
+		   <dd>Make all controls inside panels have red foreground color . </dd>
+		   
+		   <dt><code class="MSS">uicontrol.text {FontWeight: bold} </code></dt>	
+		   <dd>All text labels in bold face, please </dd>
+		   
+		   <dt><code class="MSS">#mylist {String: "{'foo','bar','baz'}"} </code></dt>
+		   <dd>Fill mylist with some values (note that this is not actually 'styling')</dd>
+		   
+		   <dt><code class="MSS">.checkbox , uipanel {FontAngle: italic} </code></dt>
+		   <dd>Checkboxes and uipanel titles should have italic captions </dd>
+		</dl>
+		<h2>Sample</h2>
+		<p>A sample GUI named 'sample.fig' is shown on the left. On the right, the GUI is styled  with <code class="matlab">stylefig('sample.fig','default.css')</code>. The file 'default.css' contains all rules from the syntax table above.</p>
+		<p>
+		<img src="sample/before.png" alt="A sample matlab GUI before being styled by MSS."/>
+		<img src="sample/after.png" alt="A sample matlab GUI after being styled by MSS. The rules are those found in the syntax table"/>
+		</p>
+		<h2>Getting started</h2>
+		<p>
+		<a href="http://student.kuleuven.be/~s0170633/projects/MSS/all.zip">Dowload</a> the project files and put them somewhere were matlab can find them: add the path with <code class="matlab">addpath('fill in the dir')</code> and optionally save the path with <code class="matlab">savepath</code>.
+		Run <code class="matlab">classpath</code>.
+		To test things out, navigate to the 'sample' subdirectory and try styling the sample GUI with <code class="matlab">stylefig('sample.fig','default.css')</code> or by running the m-file <code class="matlab">run</code>.
+		</p>
+	</body>
+</html>

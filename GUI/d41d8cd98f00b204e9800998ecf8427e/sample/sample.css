@@ -1,0 +1,13 @@
+* {FontSize: 40} /* I like big fonts all over the place*/
+
+#next {background: url('forward.png')} /* Give any object with a tag 'next' a nice background image*/
+
+uipanel uicontrol {ForegroundColor: 255 0 0} /* make all controls inside panels have red foreground color . */
+
+uicontrol.text {FontWeight: bold} /* All text labels in bold face, please */
+
+uicontrol.text {Font: Corbert} /* All text labels in bold face, please */
+
+#mylist {String: "{'foo','bar','baz'}"} /* Fill mylist with some values (note that this is not actually 'styling')*/
+
+.checkbox , uipanel {FontAngle: italic} /* checkboxes and uipanel titles should have italic captions */

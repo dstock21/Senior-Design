@@ -22,7 +22,7 @@ function varargout = LoginPage(varargin)
 
 % Edit the above text to modify the response to help LoginPage
 
-% Last Modified by GUIDE v2.5 25-Mar-2018 16:54:41
+% Last Modified by GUIDE v2.5 05-Apr-2018 16:07:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,7 +54,19 @@ function LoginPage_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for LoginPage
 handles.output = hObject;
-
+% This creates the 'background' axes
+ha = axes('units','normalized','position',[0, 0 1 1]);
+% Move the background axes to the bottom
+I=imread('LoginPage.png');
+hi = imagesc(I);
+uistack(ha,'bottom');
+set(ha,'handlevisibility','off','visible','off');
+% Load in a background image and display it using the correct colors
+% The image used below, is in the Image Processing Toolbox.  If you do not have %access to this toolbox, you can use another image file instead.
+% Turn the handlevisibility off so that we don't inadvertently plot into the axes again
+% Also, make the axes invisible
+set(ha,'handlevisibility','off', ...
+            'visible','off')
 % Update handles structure
 guidata(hObject, handles);
 
@@ -70,6 +82,36 @@ function varargout = LoginPage_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+% This creates the 'background' axes
+ha = axes('units','normalized', ...
+            'position',[0 0 1 1]);
+
+% Move the background axes to the bottom
+uistack(ha,'bottom');
+% Load in a background image and display it using the correct colors
+% The image used below, is in the Image Processing Toolbox.  If you do not have %access to this toolbox, you can use another image file instead.
+I=imread('LoginPage.png');
+hi = imagesc(I);
+colormap gray
+% Turn the handlevisibility off so that we don't inadvertently plot into the axes again
+% Also, make the axes invisible
+set(ha,'handlevisibility','off', ...
+            'visible','off');
+        
+
+
+axes(handles.axes1);
+set(gca,'xtick',[]);
+set(gca,'ytick',[]);
+
+% Logo
+% The image used below, is in the Image Processing Toolbox.  If you do not have %access to this toolbox, you can use another image file instead.
+I=imread('logo.png');
+hi = imshow(I);
+set(ha,'handlevisibility','off', ...
+            'visible','off');
+% Turn the handlevisibility off so that we don't inadvertently plot into the axes again
+% Also, make the axes invisible
 varargout{1} = handles.output;
 
 
@@ -78,6 +120,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+close
 MainMenu
 
 
@@ -133,3 +176,26 @@ function pushbutton1_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+
+function edit3_Callback(hObject, eventdata, handles)
+% hObject    handle to edit3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit3 as text
+%        str2double(get(hObject,'String')) returns contents of edit3 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

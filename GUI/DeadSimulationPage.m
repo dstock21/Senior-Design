@@ -27,11 +27,11 @@ function varargout = DeadSimulationPage(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @DeadSimulationPage_OpeningFcn, ...
-                   'gui_OutputFcn',  @DeadSimulationPage_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @DeadSimulationPage_OpeningFcn, ...
+    'gui_OutputFcn',  @DeadSimulationPage_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -63,54 +63,74 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = DeadSimulationPage_OutputFcn(hObject, eventdata, handles) 
+function varargout = DeadSimulationPage_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+handles.thickness
 xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
 xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
 x = xa-xh;
-handles.timer = timer('Name','MyTimer',               ...
-                       'Period',0.1,                    ... 
-                       'StartDelay',0,                 ... 
-                       'TasksToExecute',inf,           ... 
-                       'ExecutionMode','fixedSpacing', ...
-                       'TimerFcn',{@dtimerCallback,handles.figure1});
+handles.timer = timer('Name','dMyTimer',               ...
+    'Period',0.1,                    ...
+    'StartDelay',0,                 ...
+    'TasksToExecute',inf,           ...
+    'ExecutionMode','fixedSpacing', ...
+    'TimerFcn',{@dtimerCallback,handles.figure1,hObject});
 handles.switch = 1;
+handles.t = 0;
 axes(handles.axes2);
 handles.Pos = plot(x(:,1), x(:,2), '.r', NaN, NaN, '.b');
 handles.time = 0;
 legend('Reference', 'Actual');
-title('Gait Characterization');
-xlabel('Ankle X Position (m)');
-ylabel('Ankle Y Position (m)');
+title('Gait Characterization', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
+xlabel('Ankle X Position (m)','FontSize',20,'Color','[0, 0.45, 0.74]');
+ylabel('Ankle Y Position (m)','FontSize',20,'Color','[0, 0.45, 0.74]');
+set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
+
+axes(handles.axes7);
+handles.sim = plot(NaN, NaN, '-b', NaN, NaN, '.b', NaN, NaN, '-r', NaN, NaN, '.r');
+xlim([-0.45, 0.55]);
+ylim([-.9, 0.2]);
+handles.Htext1 = text(handles.axes7, 0, 0, '');
+handles.Htext2 = text(handles.axes7, 0, 0, '');
+handles.Htext3 = text(handles.axes7, 0, 0, '');
+axis equal
+title('Leg Simulation', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
+xlabel('X Relative Position','FontSize',20,'Color','[0, 0.45, 0.74]');
+ylabel('Y Relative Position','FontSize',20,'Color','[0, 0.45, 0.74]');
+set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
 axes(handles.axes3);
 handles.Hka = plot(NaN, NaN);
-title('Knee Angle');
-xlabel('Time (s)');
-ylabel('Knee Angle (rad)');
+title('Knee Angle', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
+xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
+ylabel('Knee Angle (rad)','FontSize',20,'Color','[0, 0.45, 0.74]');
+set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
- axes(handles.axes4);
+axes(handles.axes4);
 handles.Hkt = plot(NaN, NaN);
-title('Knee Torque');
-xlabel('Time (s)');
-ylabel('Knee Torque (Nm)');
+title('Knee Torque', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
+xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
+ylabel('Knee Torque (Nm)','FontSize',20,'Color','[0, 0.45, 0.74]');
+set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
- axes(handles.axes6);
+axes(handles.axes6);
 handles.Hha = plot(NaN, NaN);
-title('Hip Angle');
-xlabel('Time (s)');
-ylabel('Hip Angle (rad)');
+title('Hip Angle', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
+xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
+ylabel('Hip Angle (rad)','FontSize',20,'Color','[0, 0.45, 0.74]');
+set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
- axes(handles.axes5);
+axes(handles.axes5);
 handles.Hht = plot(NaN, NaN);
-title('Hip Torque');
-xlabel('Time (s)');
-ylabel('Hip Torque (Nm)');
+title('Hip Torque', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
+xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
+ylabel('Hip Torque (Nm)','FontSize',20,'Color','[0, 0.45, 0.74]');
+set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
 p_id = getappdata(0, 'p_id');
 ts = getappdata(0, 'ts');
@@ -170,6 +190,7 @@ function pushbutton3_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+stop(handles.timer);
 close;
 
 
@@ -197,7 +218,7 @@ if handles.switch == 1
     handles.switch = 0;
     stop(handles.timer);
     set(handles.pushbutton4, 'String', 'Continue');
-else 
+else
     handles.switch = 1;
     start(handles.timer);
     set(handles.pushbutton4, 'String', 'Pause');
