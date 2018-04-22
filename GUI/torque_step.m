@@ -47,9 +47,9 @@ end
 figure(1);
 plot((t-t(1))/1000000, abs(Q), 'k');
 hold on;
-plot((t-t(1))/1000000, (1:length(t))*10/length(t), '--r');
+%plot((t-t(1))/1000000, (1:length(t))*10/length(t), '--r');
 hold on;
-%plot((t-t(1))/1000000, (linspace(1, length(t), length(t))*10/length(t))-0.5, '--b');
+plot((t-t(1))/1000000, 10*ones(size(t)), '--r');
 title('Torque Step Response');
 xlabel('Time (s)');
 ylabel('Torque (Nm)');

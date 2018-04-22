@@ -12,7 +12,7 @@
 
 // UPDATE
 #define NREF 139
-#define BETA 0.85 //0 = filter is off
+#define BETA 0.9 //0 = filter is off
 #define T_OFFSET_K 1.87
 #define T_SENSITIVITY_K 7.1
 #define T_OFFSET_H 1.85
@@ -20,11 +20,15 @@
 #define KP 0
 #define KD 0
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
-#define PHIK_M 72.1
-#define PHIK_B 1155
-#define PHIH_M 72.1
-#define PHIH_B 1155
-#define MIN_PHI 1200
+#define PHIK_A 0.6549
+#define PHIK_B -11.458
+#define PHIK_C 87.148
+#define PHIK_D 1797.9
+#define PHIH_A 0.6549
+#define PHIH_B -11.458
+#define PHIH_C 87.148
+#define PHIH_D 1797.9
+#define MIN_PHI 1300
 #define MAX_PHI 2250
 
 // PINS
@@ -50,7 +54,7 @@ VarSpeedServo ServoK;
 uint16_t ABSposition = 0;
 uint16_t ABSposition_last = 0;
 uint8_t temp[2];
-float k = 0.1; // UPDATE
+float k = 0.05; // UPDATE
 
 // State:
 // 0: knee angle
@@ -59,9 +63,6 @@ float k = 0.1; // UPDATE
 // 3: hip torque
 float state[4];
 float stateavg[4];
-// 0: hip-knee
-// 1: knee-ankle
-//float L[2];
 
 float Ref[2*NREF] = {6.7,18.3,4.7,17.75,2.7,17.2,1.3,16.7,-0.1,16.2,-0.95,15.7,-1.8,
 15.2,-2.05,14.75,-2.3,14.3,-2.05,13.95,-1.8,13.6,-1.2,13.2,-0.6,12.8,0.25,12.5,1.1,
@@ -89,8 +90,8 @@ float t_err[4]; //knee, hip, knee', hip'
 float ttemp;
 float phik = MIN_PHI;
 float phih = MIN_PHI;
-float tk_des;
-float th_des;
+float tk_des = 0;;
+float th_des = 0;;
 
 float deg = 0.00;
 int wrap_k = 0;
@@ -101,6 +102,7 @@ float ha;
 unsigned long time;
 unsigned long temptime;
 float T;
+float T0 = 0;
 
 unsigned long count = 0;
 char incomingByte;
@@ -130,13 +132,7 @@ void setup()
 
   // general set up
   Serial.begin(9600);
-//  Serial.println("STARTING...");
-//  Serial.println("SETTING ZERO...");
   
-//  uint8_t signal = SPI_T(0x70);    // set zero at set up
-//  while (signal != 0x80) {
-//    signal = SPI_T(0x00);
-//  }
   Serial.flush();
   delay(2000);
   SPI.end();
@@ -150,12 +146,13 @@ void setup()
     t_err[i] = 0;
   }
 
-  //L[0] = 0.32;
-  //L[1] = 0.42;
-
   time = millis();
   T = time;
+
+  phik = 0;
+  phih = 0;
 }
+
 uint8_t SPI_T (uint8_t msg, int joint)    //Repetive SPI transmit sequence
 {
    uint8_t msg_temp = 0;  //vairable to hold recieved data
@@ -218,8 +215,8 @@ void setzero() {
   delay(50);
   digitalWrite(ZERO_RESET,HIGH);
 
-  qk_off = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K);
-  qh_off = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H);
+  qk_off = qk_off + stateavg[2];
+  qh_off = qh_off + stateavg[3];
 }
 
 float get_torque(int joint, float off, float sens) {
@@ -243,19 +240,6 @@ void average(float* avg, float* curr, int len) {
     avg[i] = BETA*avg[i]+(1-BETA)*curr[i];
   }
 }
-
-//void fk() {
-//  state[6] = L[0]*sin(stateavg[1]*CONV_D2R)+L[1]*sin(stateavg[0]*CONV_D2R);
-//  state[7] = -L[0]*cos(stateavg[1]*CONV_D2R)-L[1]*cos(stateavg[0]*CONV_D2R);
-//}
-//
-//// row major -> (0,0)=0, (0,1)=1, (1,0)=2, (1,1)=3                                                                                                                                                                                                                                                                                                                                                                                                                             
-//void jacobian(float* jacobian) {
-//  jacobian[0] = L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R) + L[0]*cos(stateavg[1]*CONV_D2R);
-//  jacobian[1] = -L[1]*cos((stateavg[0]-stateavg[1])*CONV_D2R);
-//  jacobian[2] = -L[1]*sin((stateavg[0]-stateavg[1])*CONV_D2R) - L[0]*sin(stateavg[1]*CONV_D2R);
-//  jacobian[3] = L[1]*sin((stateavg[0]-stateavg[1])*CONV_D2R);
-//}
 
 // Returns min position error index
 int err() {
@@ -282,8 +266,8 @@ int err() {
   return i_err;
 }
 
-float phi_est(float t, float m, float b) {
-  float phi_des = m*abs(t) + b;
+float phi_est(float t, float a, float b, float c, float d) {
+  float phi_des = a*sq(t)*abs(t) + b*sq(t) + c*abs(t) + d;
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }
@@ -313,32 +297,32 @@ void loop()
        ka = state[0];
        ha = state[1];
        
-       // take measurements
-       //state[0] = (get_angle(KNEE_ANGLE)/4 + WRAP*wrap_k);
+       // take measurementsM
+       state[0] = (get_angle(KNEE_ANGLE)/4 + WRAP*wrap_k);
        state[2] = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K)-qk_off;
        state[3] = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H)-qh_off;
-       //state[1] = (get_angle(HIP_ANGLE)/4 + WRAP*wrap_h);
+       state[1] = (get_angle(HIP_ANGLE)/4 + WRAP*wrap_h);
 
-//       if (abs(ka-state[0]) > WRAP_THRESH) {
-//        if (ka > state[0]) {
-//          state[0] += WRAP;
-//          wrap_k +=1;
-//        }
-//        else {
-//          state[0] -= WRAP;
-//          wrap_k -= 1;
-//        }
-//       }
-//       if (abs(ha-state[1]) > WRAP_THRESH) {
-//        if (ha > state[1]) {
-//          state[1] += WRAP;
-//          wrap_h +=1;
-//        }
-//        else {
-//          state[1] -= WRAP;
-//          wrap_h -=1;
-//        }
-//       }
+       if (abs(ka-state[0]) > WRAP_THRESH) {
+        if (ka > state[0]) {
+          state[0] += WRAP;
+          wrap_k +=1;
+        }
+        else {
+          state[0] -= WRAP;
+          wrap_k -= 1;
+        }
+       }
+       if (abs(ha-state[1]) > WRAP_THRESH) {
+        if (ha > state[1]) {
+          state[1] += WRAP;
+          wrap_h +=1;
+        }
+        else {
+          state[1] -= WRAP;
+          wrap_h -=1;
+        }
+       }
        
        // calculate T for derivatives
        temptime = time;
@@ -351,6 +335,8 @@ void loop()
        // compare to reference
        i_err = err();
 
+//       qk_err = abs(stateavg[0]) - ERR_RANGE;
+//       qh_err = abs(stateavg[1]) - ERR_RANGE;
        qk_err = abs(Ref[2*i_err]-stateavg[0]) - ERR_RANGE;
        qh_err = abs(Ref[2*i_err+1]-stateavg[1]) - ERR_RANGE;
        if (qk_err < 0) qk_err = 0;
@@ -369,8 +355,8 @@ void loop()
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
-       //phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
-       //phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
+       phik = phi_est(tk_des, PHIK_A, PHIK_B, PHIK_C, PHIK_D) + KP*t_err[0] + KD*t_err[2];
+       phih = phi_est(th_des, PHIH_A, PHIH_B, PHIH_C, PHIH_D) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
        run_servo();
@@ -386,13 +372,8 @@ void loop()
 //        digitalWrite(LED_BUILTIN, LOW);
 //       }
 
-       // troubleshooting timer
-//       state[2] = T*1000.0;
-//       state[3] = time;
-//       state[0] = count;
-
-       stateavg[2] = tk_des;
-       stateavg[3] = th_des;
+//       // troubleshooting timer
+//       stateavg[0] = (time - T0)/1000000.0;
 
        if (count++ % 20 ==0) {
         send_values(stateavg, 4);
@@ -405,7 +386,12 @@ void loop()
             // say what you got:
             if (incomingByte == 'r') {
               setzero();
-              
+              ka = 0;
+              ha = 0;
+              wrap_k = 0;
+              wrap_h = 0;
+              state[0] = 0;
+              state[1] = 0;
             }
 
             if (incomingByte == 'k') {
@@ -430,28 +416,28 @@ void loop()
                 phih = phik;
               }
             }
-
-            if (incomingByte == 'a') {
-              int ticker = 0;
-              while (Serial.available() < 4 && ticker < 30) {
-                continue;
-                ticker++;
-              }
-              if (Serial.available() >= 4) {
-                state[0] = Serial.parseFloat();
-              }
-            }
-
-            if (incomingByte == 'b') {
-              int ticker = 0;
-              while (Serial.available() < 4 && ticker < 30) {
-                continue;
-                ticker++;
-              }
-              if (Serial.available() >= 4) {
-                state[1] = Serial.parseFloat();
-              }
-            }
+//
+//            if (incomingByte == 'a') {
+//              int ticker = 0;
+//              while (Serial.available() < 4 && ticker < 30) {
+//                continue;
+//                ticker++;
+//              }
+//              if (Serial.available() >= 4) {
+//                state[0] = Serial.parseFloat();
+//              }
+//            }
+//
+//            if (incomingByte == 'b') {
+//              int ticker = 0;
+//              while (Serial.available() < 4 && ticker < 30) {
+//                continue;
+//                ticker++;
+//              }
+//              if (Serial.available() >= 4) {
+//                state[1] = Serial.parseFloat();
+//              }
+//            }
         }
        }
 }
