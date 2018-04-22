@@ -11,25 +11,30 @@
 // all instances if they are not relevant to current test.
 
 // UPDATE
-#define NREF 139
-#define BETA 0.9 //0 = filter is off
+#define NREF 150
+#define BETA 0.85 //0 = filter is off
 #define T_OFFSET_K 1.87
 #define T_SENSITIVITY_K 7.1
 #define T_OFFSET_H 1.85
 #define T_SENSITIVITY_H 6.667
-#define KP 0
-#define KD 0
+#define KP 40 //26
+#define KD 0.0015 //0.007
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
-#define PHIK_M 35
-#define PHIK_B 1900
-#define PHIH_M 35
-#define PHIH_B 1900
-#define MIN_PHI 1850
+#define PHIK_A 0.6549
+#define PHIK_B -11.458
+#define PHIK_C 87.148
+#define PHIK_D 1797.9
+#define PHIH_A 0.6549
+#define PHIH_B -11.458
+#define PHIH_C 87.148
+#define PHIH_D 1797.9
+#define MIN_PHI 1800
 #define MAX_PHI 2250
 
 // PINS
 #define KNEE_ANGLE 3 //Chip or Slave select 
 #define HIP_ANGLE 4 //Chip or Slave select
+#define LED_PIN 10
 #define KNEE_TORQUE A0
 #define HIP_TORQUE A1
 #define SERVO_KNEE 5
@@ -40,16 +45,14 @@
 #define SPEED 160
 #define CONV_D2R M_PI/180
 #define BEGIN_SEND -10000.0
-#define MAX_TORQUE 10
+#define END_SEND -5000.0
+#define MAX_TORQUE 2.5
 #define WRAP_THRESH 45
 #define WRAP 90
 
 VarSpeedServo ServoH;
 VarSpeedServo ServoK;
 
-uint16_t ABSposition = 0;
-uint16_t ABSposition_last = 0;
-uint8_t temp[2];
 float k = 0.05; // UPDATE
 
 // State:
@@ -71,8 +74,8 @@ float t_err[4]; //knee, hip, knee', hip'
 float ttemp;
 float phik = MIN_PHI;
 float phih = MIN_PHI;
-float tk_des = 0;;
-float th_des = 0;;
+float tk_des = 0;
+float th_des = 0;
 
 float deg = 0.00;
 int wrap_k = 0;
@@ -93,14 +96,8 @@ void setup()
 {
   //For testing
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
   
-  // encoder set up
-  pinMode(KNEE_ANGLE,OUTPUT);//Slave Select
-  digitalWrite(KNEE_ANGLE,HIGH);
-  pinMode(HIP_ANGLE,OUTPUT);//Slave Select
-  digitalWrite(HIP_ANGLE,HIGH);
-  pinMode(ZERO_RESET,OUTPUT);//Slave Select
-  digitalWrite(ZERO_RESET,HIGH);
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setDataMode(SPI_MODE0);
@@ -131,14 +128,18 @@ void setup()
   time = millis();
   T = time;
 
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_PIN, HIGH);
+  phik = MIN_PHI;
+  phih = MIN_PHI;
+  run_servo();
   delay(100);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_PIN, LOW);
+  delay(400);
+  digitalWrite(LED_PIN, HIGH);
 
   // start collecting data
-  for (i = 0; i < NREF; i++) {
+  i = 0;
+  while (i < NREF) {
        // take measurements
        //state[0] = (get_angle(KNEE_ANGLE)/4 + WRAP*wrap_k);
        state[2] = get_torque(KNEE_TORQUE, T_OFFSET_K, T_SENSITIVITY_K)-qk_off;
@@ -153,29 +154,35 @@ void setup()
 
        average(stateavg, state, 4);
 
-       tk_des = MAX_TORQUE;
+       tk_des = (i+1)*10.0/NREF;
        th_des = MAX_TORQUE;
 
-       ttemp = tk_des - stateavg[2];
+       ttemp = tk_des - abs(stateavg[2]);
        t_err[2] = (t_err[0]-ttemp)/T;
        t_err[0] = ttemp;
-       ttemp = th_des - stateavg[3];
+       ttemp = th_des - abs(stateavg[3]);
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
-       phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
-       phih = phi_est(th_des, PHIH_M, PHIH_B) + KP*t_err[1] + KD*t_err[3];
+       phik = phi_est(tk_des, PHIK_A, PHIK_B, PHIK_C, PHIK_D) + KP*t_err[0] + KD*t_err[2];
+       phih = phi_est(th_des, PHIH_A, PHIH_B, PHIH_C, PHIH_D) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
        run_servo();
 
-       out[2*i-1] = time;
-       out[2*i] = stateavg[2];
+       if (count++ % 5 == 0) {
+         out[2*i] = time;
+         out[2*i+1] = stateavg[2];
+         i++;
+       }
 
-       delay(5);
+       delay(4);
   }
 
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_PIN, LOW);
+  phik = MIN_PHI;
+  phih = MIN_PHI;
+  run_servo();
 }
 
 float get_torque(int joint, float off, float sens) {
@@ -193,8 +200,8 @@ void average(float* avg, float* curr, int len) {
   }
 }
 
-float phi_est(float t, float m, float b) {
-  float phi_des = m*abs(t) + b;
+float phi_est(float t, float a, float b, float c, float d) {
+  float phi_des = a*sq(t)*abs(t) + b*sq(t) + c*abs(t) + d;
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }
@@ -231,9 +238,10 @@ void loop()
       for (int i = 0; i < NREF; i++) {
         delay(60);
         Serial.println(BEGIN_SEND);
-        Serial.println(out[2*i-1]);
         Serial.println(out[2*i]);
+        Serial.println(out[2*i+1]);
       }
+      Serial.println(END_SEND);
     }
   }
 }
