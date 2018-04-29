@@ -62,14 +62,14 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 
 
-% --- Outputs from this function are returned to the command line.
+% --- Start up function.
 function varargout = DeadSimulationPage_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
+% Load Reference gait
 handles.thickness
 xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
 xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
@@ -82,6 +82,8 @@ handles.timer = timer('Name','dMyTimer',               ...
     'TimerFcn',{@dtimerCallback,handles.figure1,hObject});
 handles.switch = 1;
 handles.t = 0;
+
+% set up plot for ankle position
 axes(handles.axes2);
 handles.Pos = plot(x(:,1), x(:,2), '.r', NaN, NaN, '.b');
 handles.time = 0;
@@ -91,6 +93,7 @@ xlabel('Ankle X Position (m)','FontSize',20,'Color','[0, 0.45, 0.74]');
 ylabel('Ankle Y Position (m)','FontSize',20,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% set up plot for leg simulation
 axes(handles.axes7);
 handles.sim = plot(NaN, NaN, '-b', NaN, NaN, '.b', NaN, NaN, '-r', NaN, NaN, '.r');
 xlim([-0.45, 0.55]);
@@ -104,6 +107,7 @@ xlabel('X Relative Position','FontSize',20,'Color','[0, 0.45, 0.74]');
 ylabel('Y Relative Position','FontSize',20,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% set up plot for knee angle vs time
 axes(handles.axes3);
 handles.Hka = plot(NaN, NaN);
 title('Knee Angle', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
@@ -111,6 +115,7 @@ xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
 ylabel('Knee Angle (rad)','FontSize',20,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% set up plot for knee torque vs time
 axes(handles.axes4);
 handles.Hkt = plot(NaN, NaN);
 title('Knee Torque', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
@@ -118,6 +123,7 @@ xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
 ylabel('Knee Torque (Nm)','FontSize',20,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% set up plot for hip angle vs time
 axes(handles.axes6);
 handles.Hha = plot(NaN, NaN);
 title('Hip Angle', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
@@ -125,6 +131,7 @@ xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
 ylabel('Hip Angle (rad)','FontSize',20,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% set up plot for hip torque vs time
 axes(handles.axes5);
 handles.Hht = plot(NaN, NaN);
 title('Hip Torque', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
@@ -132,6 +139,7 @@ xlabel('Time (s)','FontSize',20,'Color','[0, 0.45, 0.74]');
 ylabel('Hip Torque (Nm)','FontSize',20,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% load stored files
 p_id = getappdata(0, 'p_id');
 ts = getappdata(0, 'ts');
 v = [p_id, '-', ts, '.csv'];
@@ -142,7 +150,7 @@ start(handles.timer);
 varargout{1} = handles.output;
 
 
-% --- Executes on slider movement.
+% --- Not used.
 function slider1_Callback(hObject, eventdata, handles)
 % hObject    handle to slider1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -152,7 +160,7 @@ function slider1_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 
-% --- Executes during object creation, after setting all properties.
+% --- Not used.
 function slider1_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to slider1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -171,7 +179,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on button press in pushbutton2.
+% --- Not used.
 function pushbutton2_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -209,7 +217,7 @@ function figure1_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 
-% --- Executes on button press in pushbutton4.
+% --- Function that pauses and stops playback.
 function pushbutton4_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton4 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB

@@ -1,16 +1,18 @@
 function [] = timerCallback(~,~,guiHandle,hObject)
+%% Timer callback function for dead simulation
 if ~isempty(guiHandle)
     % get the handles
     handles = guidata(guiHandle);
     if ~isempty(handles)
-        % query your bluetooth board using your code from the while loop
-        % if new data, then update the axes
         
+        % get size of stored values
         [m, n] = size(handles.values);
         if (handles.time > n)
             stop(handles.timer);
         end
+        % get current index of stored values
         tym = handles.time + 1;
+        % load values joint positions, joint angles and torque values
         ax = handles.values([1,2,3,4,5,6], tym);
         xAll = handles.values([7,8,9,10,11,12,13,14], tym);
         xAllr = handles.values([15,16,17,18,19,20,21,22], tym);
@@ -19,6 +21,8 @@ if ~isempty(guiHandle)
         ha = handles.values(25, tym);
         ht = handles.values(26, tym);
         t = handles.values(27, tym);
+        
+        % plot only 10 most recent ankle position
         if (handles.curr > 10)
             xpos = get(handles.Pos(2,1),'XData');
             ypos = get(handles.Pos(2,1),'YData');
@@ -33,6 +37,7 @@ if ~isempty(guiHandle)
             set(handles.Pos(2,1),'XData',xdata,'YData',ydata);
         end
         
+        % plot only handles.limit recent values
         if (handles.curr > handles.limit)
             
             xdata = xAll([1 3 5 7]);
@@ -114,6 +119,7 @@ if ~isempty(guiHandle)
         
         handles.time = tym;
         
+        % update angle and torque display values
         set(handles.text4, 'String', num2str(ka));
         set(handles.text6, 'String', num2str(ht));
         set(handles.text7, 'String', num2str(kt));

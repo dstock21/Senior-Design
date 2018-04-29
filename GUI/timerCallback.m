@@ -1,8 +1,11 @@
 function [] = timerCallback(~,~,guiHandle,hObject)
+%% Function is called every X number of seconds to read from arduino and update plots
+%
 if ~isempty(guiHandle)
     % get the handles
     handles = guidata(guiHandle);
     if ~isempty(handles)
+        % wait until there is enough information to be read
         while 1
             ba = handles.arduino.BytesAvailable;
             if ba >= 5
@@ -11,12 +14,14 @@ if ~isempty(guiHandle)
         end
         a = fscanf(handles.arduino, '%f');
         
+        % check for start character
         while (a~= -10000)
             a = fscanf(handles.arduino, '%f');
             continue
         end
-        % query your bluetooth board using your code from the while loop
-        % if new data, then update the axes
+        
+        
+        % wait until all values have been recieved
         
         while 1
             ba = handles.arduino.BytesAvailable;
@@ -24,14 +29,19 @@ if ~isempty(guiHandle)
                 break
             end
         end
+        
+        % keep count of number of times all values have been recieved
         handles.curr = handles.curr + 1;
         lastwarn('')
+        
+        % read values from arduino
         ktemp = fscanf(handles.arduino, '%f');
         htemp = fscanf(handles.arduino, '%f');
         kt = fscanf(handles.arduino, '%f');
         ht = fscanf(handles.arduino, '%f');
         t = handles.t;
         [warnMsg, warnId] = lastwarn;
+        % Error check for readings and handle error
         if ~isempty(warnMsg)
             ka = NaN;
             ha = NaN;
@@ -40,50 +50,34 @@ if ~isempty(guiHandle)
             t = handles.t;
             return;
         end
+        % Convert degrees to radians
         ka = deg2rad(ktemp);
         ha = deg2rad(htemp);
+        % flush out arduino to have latest results
         flushinput(handles.arduino);
+        % Check to see if values make sense
         if (ka < -30 || ka > 30 || ha < -30 || ha > 30 || kt <= -30 || kt > 30 || ht <= -30 || ht > 30)
-        else      
+        else
+            % plot results
             handles.HTstr1 = ['Q = ' num2str(ht) ' N*m'];
             handles.HTstr2 = ['Q = ' num2str(kt) ' N*m'];
             handles.HTstr3 = ['Q = ' num2str(0) ' N*m'];
+            % apply forward kinematics
             ax = fk([ha; ka; 0]);
+            
+            
             [m, n] = size(ax);
             
             
-            
+            % get index of corresponding reference gait
             [index, erv] = err([ha, ka], handles.ref);
-%             if (erv(1) > handles.errhip)
-%                 handles.errcounthip = handles.errcounthip + 1;
-%                 if handles.errcounthip > handles.errthresh
-%                     soundsc(handles.sound, handles.Fs);
-%                     handles.errcounthip = 0;
-%                 end
-%             else
-%                 handles.errcounthip = handles.errcounthip - 1;
-%                 if handles.errcounthip < 0
-%                     handles.errcounthip = 0;
-%                 end
-%             end
-%             
-%             if (erv(2) > handles.errknee)
-%                 handles.errcountknee = handles.errcountknee + 1;
-%                 if handles.errcountknee > handles.errthresh
-%                     soundsc(handles.sound, handles.Fs);
-%                     handles.errcountknee = 0;
-%                 end
-%             else
-%                 handles.errcountknee = handles.errcountknee - 1;
-%                 if handles.errcountknee < 0
-%                     handles.errcountknee = 0;
-%                 end
-%             end
             har = handles.ref(index, 1);
             kar = handles.ref(index, 2);
             
+            % apply forward kinematics to reference gait
             axr = fk([har; kar; 0]);
             
+            % extract joint positions
             xk = ax([1, 2], 1);
             xa = ax([1, 2], 2);
             xt = ax([1, 2], 3);
@@ -96,7 +90,7 @@ if ~isempty(guiHandle)
             
             xAllr = [zeros(size(xkr)), xkr, xar, xtr];
             
-            
+            % save results so that it can be saved to a file later
             handles.axs(1, handles.curr) = ax(1);
             handles.axs(2, handles.curr) = ax(2);
             handles.axs(3, handles.curr) = ax(3);
@@ -130,7 +124,7 @@ if ~isempty(guiHandle)
             handles.ts = [handles.ts, t + 0.1];
             
             
-            
+            % Plot only the recent 10 ankle positions
             if (handles.curr > 10)
                 xpos = get(handles.Pos(2,1),'XData');
                 ypos = get(handles.Pos(2,1),'YData');
@@ -145,6 +139,7 @@ if ~isempty(guiHandle)
                 set(handles.Pos(2,1),'XData',xdata,'YData',ydata);
             end
             
+            %Plot only handles.limit recent values
             if (handles.curr > handles.limit)
                 
                 xdata = xAll([1 3 5 7]);

@@ -1,4 +1,4 @@
-function varargout = LiveSimulationPage(varargin)
+ function varargout = LiveSimulationPage(varargin)
 % LIVESIMULATIONPAGE MATLAB code for LiveSimulationPage.fig
 %      LIVESIMULATIONPAGE, by itself, creates a new LIVESIMULATIONPAGE or raises the existing
 %      singleton*.
@@ -67,7 +67,7 @@ function varargout = LiveSimulationPage_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
+% Create handles that deal with simulation characteristics
 handles.output = hObject;
 handles.kas = [];
 handles.has = [];
@@ -77,7 +77,7 @@ handles.xAlls = zeros(8, 1);
 handles.axs = zeros(6, 1);
 handles.ts = [];
 handles.curr = 0;
-handles.limit = 2000;
+handles.limit = 25;
 handles.ref = deg2rad(qrl);
 handles.errbound = 20;
 temp = load('gong');
@@ -89,7 +89,9 @@ handles.errcounthip = 0;
 handles.errcountknee = 0;
 handles.errhip = 30;
 handles.errknee = 30;
-% Update handles structure
+
+
+%Load up reference gait
 
 xh = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'E4:F109')/100;
 xa = xlsread('Winter_Appendix_data.xlsx','A1.Raw_Coordinate', 'K4:L109')/100;
@@ -102,7 +104,10 @@ handles.timer = timer('Name','MyTimer',               ...
     'TimerFcn',{@timerCallback,handles.figure1, hObject});
 % or: jSlider.setPaintLabels(1);  % with both ticks and labels
 
+% Set up serial connection
 handles.arduino = setupSerial('/dev/tty.DSDTECHHC-05-DevB');
+
+%Set up plot for for ankle position with reference gait
 handles.t = 0;
 axes(handles.axes2);
 handles.Pos = plot(x(:,1), x(:,2), 'or', NaN, NaN, 'ob', 'markers', 8);
@@ -113,6 +118,7 @@ xlabel('Ankle X Position (m)','FontSize',25,'Color','[0, 0.45, 0.74]');
 ylabel('Ankle Y Position (m)','FontSize',25,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+%Set up plot of leg simulation with reference gait
 axes(handles.axes7);
 handles.sim = plot(NaN, NaN, '-b', NaN, NaN, '.b', NaN, NaN, '-r', NaN, NaN, '.r','markers', 60);
 xlim([-0.45, 0.55]);
@@ -128,22 +134,24 @@ ylabel('Y Relative to Hip Position','FontSize',25,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
 
+% Set up plot of Knee angle vs time
 axes(handles.axes3);
 handles.Hka = plot(NaN, NaN);
-ylim([-2, 2]);
+%ylim([-2, 2]);
 title('Knee Angle', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
 xlabel('Time (s)','FontSize',25,'Color','[0, 0.45, 0.74]');
 ylabel('Knee Angle (rad)','FontSize',25,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% Set up plot of Knee Torque vs time
 axes(handles.axes4);
 handles.Hkt = plot(NaN, NaN);
-ylim([-2, 2]);
 title('Knee Torque', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
 xlabel('Time (s)','FontSize',25,'Color','[0, 0.45, 0.74]');
 ylabel('Knee Torque (Nm)','FontSize',25,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% Set up plot of Hip angle vs time
 axes(handles.axes6);
 handles.Hha = plot(NaN, NaN);
 title('Hip Angle', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
@@ -151,6 +159,7 @@ xlabel('Time (s)','FontSize',25,'Color','[0, 0.45, 0.74]');
 ylabel('Hip Angle (rad)','FontSize',25,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% Set up plot og Hip torque vs time
 axes(handles.axes5);
 handles.Hht = plot(NaN, NaN);
 title('Hip Torque', 'FontWeight','bold', 'FontSize',30, 'Color','[0, 0.45, 0.74]');
@@ -158,6 +167,7 @@ xlabel('Time (s)','FontSize',25,'Color','[0, 0.45, 0.74]');
 ylabel('Hip Torque (Nm)','FontSize',25,'Color','[0, 0.45, 0.74]');
 set(findall(gca, 'Type', 'Line'),'LineWidth',handles.thickness);
 
+% Torque slider implelemntation
 handles.jSlider = javax.swing.JSlider;
 [handles.hObjava, handles.hslider] =javacomponent(handles.jSlider);
 set(handles.hslider, 'Parent', handles.figure1);
@@ -185,9 +195,7 @@ function slider1_Callback(hObject, eventdata, handles, p)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of
-%        slider
+% Obtain value from slider and send to  arduino
 slider = getappdata(0, 'slider');
 arduino = getappdata(0, 'arduino');
 value = slider.getValue;
@@ -207,14 +215,15 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 
-% --- Executes on button press in pushbutton1.
+% --- Send set zero signal to arduino.
 function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 fprintf(handles.arduino, '%c', 'r');
 
-% --- Executes on button press in pushbutton2.
+% --- Save data to file.
 function pushbutton2_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -238,7 +247,7 @@ guidata(hObject,handles);
 close all;
 
 
-% --- Executes on button press in pushbutton3.
+% --- Exit simulation page.
 function pushbutton3_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
