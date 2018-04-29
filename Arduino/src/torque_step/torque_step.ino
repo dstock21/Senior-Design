@@ -20,14 +20,10 @@
 #define KP 40 //26
 #define KD 0.0015 //0.007
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
-#define PHIK_A 0.6549
-#define PHIK_B -11.458
-#define PHIK_C 87.148
-#define PHIK_D 1797.9
-#define PHIH_A 0.6549
-#define PHIH_B -11.458
-#define PHIH_C 87.148
-#define PHIH_D 1797.9
+#define PHIK_M 35
+#define PHIK_B 1900
+#define PHIH_M 35
+#define PHIH_B 1900
 #define MIN_PHI 1800
 #define MAX_PHI 2250
 
@@ -164,8 +160,8 @@ void setup()
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
-       phik = phi_est(tk_des, PHIK_A, PHIK_B, PHIK_C, PHIK_D) + KP*t_err[0] + KD*t_err[2];
-       phih = phi_est(th_des, PHIH_A, PHIH_B, PHIH_C, PHIH_D) + KP*t_err[1] + KD*t_err[3];
+       phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
+       phih = phi_est(th_des, PHIK_M, PHIK_B) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
        run_servo();
@@ -200,8 +196,8 @@ void average(float* avg, float* curr, int len) {
   }
 }
 
-float phi_est(float t, float a, float b, float c, float d) {
-  float phi_des = a*sq(t)*abs(t) + b*sq(t) + c*abs(t) + d;
+float phi_est(float t, float m, float b) {
+  float phi_des = m*abs(t) + b;
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }

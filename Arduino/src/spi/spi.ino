@@ -3,32 +3,23 @@
 #include "MatrixMath.h"
 
 // NOTES:
-// Reference gait is still not being uploaded to Arduino yet.
-// In order to apply servo positions manually, go to function "run_servo()" 
-// and manually apply an angle in microseconds. also, ake sure run_servo() 
-// is uncommented in loop(). 
-// The only non-deterministic function in loop() is get_angle(). Comment 
-// all instances if they are not relevant to current test.
+// Program will not run to completion if encoders are not attached properly.
 
 // UPDATE
 #define NREF 139
-#define BETA 0.9 //0 = filter is off
+#define BETA 0.8 //0 = filter is off
 #define T_OFFSET_K 1.87
 #define T_SENSITIVITY_K 7.1
 #define T_OFFSET_H 1.85
 #define T_SENSITIVITY_H 6.667
-#define KP 0
-#define KD 0
+#define KP 40
+#define KD 0.0015
 #define ERR_RANGE 3 // how far off from reference is "correct" in degrees
-#define PHIK_A 0.6549
-#define PHIK_B -11.458
-#define PHIK_C 87.148
-#define PHIK_D 1797.9
-#define PHIH_A 0.6549
-#define PHIH_B -11.458
-#define PHIH_C 87.148
-#define PHIH_D 1797.9
-#define MIN_PHI 1300
+#define PHIK_M 35
+#define PHIK_B 1900
+#define PHIH_M 35
+#define PHIH_B 1900
+#define MIN_PHI 1700
 #define MAX_PHI 2250
 
 // PINS
@@ -54,7 +45,7 @@ VarSpeedServo ServoK;
 uint16_t ABSposition = 0;
 uint16_t ABSposition_last = 0;
 uint8_t temp[2];
-float k = 0.05; // UPDATE
+float k = 0.05; // can be updates
 
 // State:
 // 0: knee angle
@@ -64,6 +55,7 @@ float k = 0.05; // UPDATE
 float state[4];
 float stateavg[4];
 
+// reference gait ordered {x1, y1, x2, y2, x3, y3, ...}
 float Ref[2*NREF] = {6.7,18.3,4.7,17.75,2.7,17.2,1.3,16.7,-0.1,16.2,-0.95,15.7,-1.8,
 15.2,-2.05,14.75,-2.3,14.3,-2.05,13.95,-1.8,13.6,-1.2,13.2,-0.6,12.8,0.25,12.5,1.1,
 12.2,2.05,11.95,3,11.7,4.05,11.55,5.1,11.4,6.25,11.3,7.4,11.2,8.6,11.25,9.8,11.3,10.95,
@@ -153,6 +145,7 @@ void setup()
   phih = 0;
 }
 
+// Helper function for get_angle
 uint8_t SPI_T (uint8_t msg, int joint)    //Repetive SPI transmit sequence
 {
    uint8_t msg_temp = 0;  //vairable to hold recieved data
@@ -162,6 +155,7 @@ uint8_t SPI_T (uint8_t msg, int joint)    //Repetive SPI transmit sequence
    return(msg_temp);      //return recieved byte
 }
 
+// Return angle measurement from encoder. 0 < output < 90
 float get_angle(int joint) {
   uint8_t recieved = 0xA5;    //just a temp vairable
    ABSposition = 0;    //reset position vairable
@@ -201,6 +195,7 @@ float get_angle(int joint) {
 
 }
 
+// digitally recalibrate torque. Reset encoders to set new zero at current location
 void setzero() {
   for (int i = 0; i < 2; i++) {
   SPI.begin();
@@ -223,12 +218,14 @@ float get_torque(int joint, float off, float sens) {
   float adc_output = analogRead(joint);
   float voltage = (5.0/1024)*adc_output;
 
+  // based on torque calibration
   float torque = (voltage-off)*sens;
 
   return torque;
 }
 
 void send_values(float* values, int len) {
+  // -10,000.0 used to define beginning of packet
   Serial.println(BEGIN_SEND);
   for (int i = 0; i < len; i++) {
     Serial.println(values[i]);
@@ -241,12 +238,16 @@ void average(float* avg, float* curr, int len) {
   }
 }
 
-// Returns min position error index
+// Returns min position error index based on reference gait
 int err() {
   // joint space implementation
   float err;
   int i_err;
   int skip = 2;
+
+  // Check every (1+skip) values in reference. Valid as long as:
+  // dot_product((x(i+1) - x(i))/||x(i+1) - x(i)||, (x(i+1+skip) - x(i))/||x(i+1+skip) - x(i)||) ~ 1
+  // skip = 2 valid for standard reference gaits with NREF ~ 139
   float error = sq(Ref[0]-stateavg[0]) + sq(Ref[1]-stateavg[1]);
   for(int i = 1+skip; i < NREF; i+=1+skip) {
     err = sq(Ref[2*i]-stateavg[0]) + sq(Ref[2*i+1]-stateavg[1]);
@@ -255,6 +256,8 @@ int err() {
       error = err;
     }
   }
+
+  // After correct region is found, compare locally
   for(int i = i_err-skip; i <= i_err+skip; i++) {
     int j = i % NREF;
     err = sq(Ref[2*j]-stateavg[0]) + sq(Ref[2*j+1]-stateavg[1]);
@@ -266,16 +269,20 @@ int err() {
   return i_err;
 }
 
-float phi_est(float t, float a, float b, float c, float d) {
-  float phi_des = a*sq(t)*abs(t) + b*sq(t) + c*abs(t) + d;
+// estimate phi based on brake characterization
+float phi_est(float t, float m, float b) {
+  float phi_des = m*abs(t) + b;
+
+  // characterization is only valid above MIN_PHI. Estimates above MAX_PHI
+  // are corrected in run_servo to simplify edge cases with controls
   if (phi_des < MIN_PHI) {
     return MIN_PHI;
   }
   return phi_des;
 }
 
+// correct servos. Never sends command above or below MAX_PHI or MIN_PHI
 void run_servo() {
-  // correct servos
   if (phik < MIN_PHI) {
    ServoK.write(MIN_PHI,SPEED);
   } else if (phik > MAX_PHI) {
@@ -294,6 +301,7 @@ void run_servo() {
 
 void loop()
 {
+       // store state in order to wrap angles
        ka = state[0];
        ha = state[1];
        
@@ -303,6 +311,9 @@ void loop()
        state[3] = get_torque(HIP_TORQUE, T_OFFSET_H, T_SENSITIVITY_H)-qh_off;
        state[1] = (get_angle(HIP_ANGLE)/4 + WRAP*wrap_h);
 
+       // Wrap both knee and hip angles (hip and knee angles can only be directly measured
+       // 0-90 degrees. In order to see if wraparound occured I compare the angle change 
+       // to a threshold of 45 degrees. The code below ensures that output is total absolute angle
        if (abs(ka-state[0]) > WRAP_THRESH) {
         if (ka > state[0]) {
           state[0] += WRAP;
@@ -335,8 +346,6 @@ void loop()
        // compare to reference
        i_err = err();
 
-//       qk_err = abs(stateavg[0]) - ERR_RANGE;
-//       qh_err = abs(stateavg[1]) - ERR_RANGE;
        qk_err = abs(Ref[2*i_err]-stateavg[0]) - ERR_RANGE;
        qh_err = abs(Ref[2*i_err+1]-stateavg[1]) - ERR_RANGE;
        if (qk_err < 0) qk_err = 0;
@@ -355,35 +364,24 @@ void loop()
        t_err[3] = (t_err[1]-ttemp)/T;
        t_err[1] = ttemp;
 
-       phik = phi_est(tk_des, PHIK_A, PHIK_B, PHIK_C, PHIK_D) + KP*t_err[0] + KD*t_err[2];
-       phih = phi_est(th_des, PHIH_A, PHIH_B, PHIH_C, PHIH_D) + KP*t_err[1] + KD*t_err[3];
+       phik = phi_est(tk_des, PHIK_M, PHIK_B) + KP*t_err[0] + KD*t_err[2];
+       phih = phi_est(th_des, PHIK_M, PHIK_B) + KP*t_err[1] + KD*t_err[3];
 
        // correct servos
        run_servo();
 
-       //Test servos
-//       if (count % 200 == 0) {
-//        ServoK.write(MIN_PHI,SPEED);
-//        ServoH.write(MAX_PHI,SPEED);
-//        digitalWrite(LED_BUILTIN, HIGH);
-//       } else if (count % 200 == 100) {
-//        ServoK.write(MAX_PHI,SPEED);
-//        ServoH.write(MIN_PHI,SPEED);
-//        digitalWrite(LED_BUILTIN, LOW);
-//       }
-
-//       // troubleshooting timer
-//       stateavg[0] = (time - T0)/1000000.0;
-
+       // Every 20th iteration communicate with UI
        if (count++ % 20 ==0) {
-        send_values(stateavg, 4);
+        send_values(stateavg, 4); // send tracked values
 
+        // check if UI sending a command
         if (Serial.available() > 0) {
           delay(200);
                 // read the incoming byte:
                 incomingByte = Serial.read();
 
-            // say what you got:
+            // 'r' = reset: recalibrates encoders and torque sensors
+            // Sets current torques and angles to zero through offset
             if (incomingByte == 'r') {
               setzero();
               ka = 0;
@@ -394,6 +392,7 @@ void loop()
               state[1] = 0;
             }
 
+            // Set torque application scalar
             if (incomingByte == 'k') {
               int ticker = 0;
               while (Serial.available() < 4 && ticker < 30) {
@@ -404,40 +403,6 @@ void loop()
                 k = Serial.parseFloat();
               }
             }
-
-            if (incomingByte == 's') {
-              int ticker = 0;
-              while (Serial.available() < 4 && ticker < 30) {
-                continue;
-                ticker++;
-              }
-              if (Serial.available() >= 4) {
-                phik = Serial.parseFloat();
-                phih = phik;
-              }
-            }
-//
-//            if (incomingByte == 'a') {
-//              int ticker = 0;
-//              while (Serial.available() < 4 && ticker < 30) {
-//                continue;
-//                ticker++;
-//              }
-//              if (Serial.available() >= 4) {
-//                state[0] = Serial.parseFloat();
-//              }
-//            }
-//
-//            if (incomingByte == 'b') {
-//              int ticker = 0;
-//              while (Serial.available() < 4 && ticker < 30) {
-//                continue;
-//                ticker++;
-//              }
-//              if (Serial.available() >= 4) {
-//                state[1] = Serial.parseFloat();
-//              }
-//            }
         }
        }
 }
